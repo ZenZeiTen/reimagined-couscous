@@ -41,6 +41,10 @@ class Mode7:
         self.cam_height = 64.0    # higher = flatter/farther horizon
         self.fov = 100.0          # depth scaling constant
 
+        # Pre-allocated render strip — avoids per-frame surface allocation.
+        self._strip: pygame.Surface | None = None
+        self._strip_size: tuple[int, int] = (0, 0)
+
     def render(self, dest: pygame.Surface, *, wrap: bool = True) -> None:
         """Render the projected plane into ``dest`` from ``horizon`` downward."""
         dest_w, dest_h = dest.get_size()
@@ -86,10 +90,15 @@ class Mode7:
         sampled = self._src_rgb[sx, sy]
 
         # Build the destination block as (w, h, 3) for surfarray, so transpose.
-        block = np.transpose(sampled, (1, 0, 2))  # (cols, rows, 3)
+        # np.ascontiguousarray forces C-contiguous layout after the view-creating
+        # transpose — required for blit_array's row-major pixel scan.
+        block = np.ascontiguousarray(np.transpose(sampled, (1, 0, 2)))  # (cols, rows, 3)
         if not wrap:
-            block = block * np.transpose(valid, (1, 0))[..., None]
+            block *= np.ascontiguousarray(np.transpose(valid, (1, 0)))[..., None]
 
-        strip = pygame.Surface((dest_w, rows))
-        pygame.surfarray.blit_array(strip, block.astype(np.uint8))
-        dest.blit(strip, (0, y0))
+        if self._strip_size != (dest_w, rows):
+            self._strip = pygame.Surface((dest_w, rows))
+            self._strip_size = (dest_w, rows)
+        assert self._strip is not None
+        pygame.surfarray.blit_array(self._strip, block)
+        dest.blit(self._strip, (0, y0))
