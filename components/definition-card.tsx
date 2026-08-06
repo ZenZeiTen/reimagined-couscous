@@ -18,7 +18,9 @@ export default function DefinitionCard({
   const entry = result.entries[0];
   const phoneticText =
     entry.phonetic ?? entry.phonetics.find((p) => p.text)?.text ?? "";
-  const audioSrc = entry.phonetics.find((p) => p.audio)?.audio ?? "";
+  const rawAudio = entry.phonetics.find((p) => p.audio)?.audio ?? "";
+  // Some API entries return protocol-relative URLs like //ssl.gstatic.com/...
+  const audioSrc = rawAudio.startsWith("//") ? `https:${rawAudio}` : rawAudio;
 
   return (
     <article className="space-y-6 rounded-2xl border border-border bg-surface p-6 shadow-sm">

@@ -11,7 +11,12 @@ import ThemeFontSwitcher from "./theme-font-switcher";
 import WordOfTheDay from "./word-of-the-day";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { WordNotFoundError, looksIndonesian, lookupWord } from "@/lib/api";
+import {
+  NetworkError,
+  WordNotFoundError,
+  looksIndonesian,
+  lookupWord,
+} from "@/lib/api";
 import type {
   BookmarkItem,
   Direction,
@@ -24,7 +29,7 @@ type SearchState =
   | { status: "loading" }
   | { status: "ready"; result: LookupResult }
   | { status: "not-found"; query: string }
-  | { status: "error"; message: string };
+  | { status: "error"; word: string; dir: Direction; network: boolean };
 
 const HISTORY_LIMIT = 10;
 
@@ -74,7 +79,8 @@ export default function DictionaryApp() {
         .then((result) => {
           if (controller.signal.aborted) return;
           setSearch({ status: "ready", result });
-          addToHistory(word.trim(), dir);
+          // Skip 1-character intermediate queries so typing doesn't pollute history.
+          if (word.trim().length >= 2) addToHistory(word.trim(), dir);
         })
         .catch((err) => {
           if (controller.signal.aborted || err?.name === "AbortError") return;
@@ -83,7 +89,9 @@ export default function DictionaryApp() {
           } else {
             setSearch({
               status: "error",
-              message: err?.message ?? "Unknown error",
+              word,
+              dir,
+              network: err instanceof NetworkError,
             });
           }
         });
@@ -170,10 +178,22 @@ export default function DictionaryApp() {
           {search.status === "not-found" && <EmptyState query={search.query} />}
           {search.status === "error" && (
             <div className="rounded-2xl border border-border bg-surface p-6 text-center">
-              <p className="font-semibold">
+              <p className="text-3xl">⚠️</p>
+              <p className="mt-2 font-semibold">
                 Terjadi kesalahan / Something went wrong
               </p>
-              <p className="mt-1 text-sm text-muted">{search.message}</p>
+              <p className="mt-1 text-sm text-muted">
+                {search.network
+                  ? "Layanan kamus sedang tidak dapat dijangkau. Periksa koneksi Anda atau coba lagi sebentar lagi. / The dictionary service is unreachable. Check your connection or try again shortly."
+                  : "Terjadi kesalahan tak terduga. Silakan coba lagi. / An unexpected error occurred. Please try again."}
+              </p>
+              <button
+                type="button"
+                onClick={() => runSearch(search.word, search.dir)}
+                className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-contrast transition hover:opacity-90"
+              >
+                Coba lagi / Try again
+              </button>
             </div>
           )}
           {search.status === "ready" && (

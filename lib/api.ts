@@ -1,7 +1,10 @@
 import type { DictionaryEntry, Direction, LookupResult } from "./types";
 
-const DICT_API = "https://api.dictionaryapi.dev/api/v2/entries/en/";
-const TRANSLATE_API = "https://api.mymemory.translated.net/get";
+// Same-origin Next.js API routes proxy the public APIs server-side —
+// the Free Dictionary API sits behind Cloudflare and its rate-limit
+// responses lack CORS headers, so direct browser calls fail opaquely.
+const DICT_API = "/api/dictionary?word=";
+const TRANSLATE_API = "/api/translate";
 
 export class WordNotFoundError extends Error {
   constructor(word: string) {
@@ -10,15 +13,32 @@ export class WordNotFoundError extends Error {
   }
 }
 
+export class NetworkError extends Error {
+  constructor(message = "Network error") {
+    super(message);
+    this.name = "NetworkError";
+  }
+}
+
+async function safeFetch(url: string, signal?: AbortSignal): Promise<Response> {
+  try {
+    return await fetch(url, { signal });
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") throw err;
+    throw new NetworkError();
+  }
+}
+
 async function fetchEnglishEntries(
   word: string,
   signal?: AbortSignal
 ): Promise<DictionaryEntry[]> {
-  const res = await fetch(DICT_API + encodeURIComponent(word.toLowerCase()), {
-    signal,
-  });
+  const res = await safeFetch(
+    DICT_API + encodeURIComponent(word.toLowerCase()),
+    signal
+  );
   if (res.status === 404) throw new WordNotFoundError(word);
-  if (!res.ok) throw new Error(`Dictionary API error (${res.status})`);
+  if (!res.ok) throw new NetworkError(`Dictionary API error (${res.status})`);
   const data = (await res.json()) as DictionaryEntry[];
   if (!Array.isArray(data) || data.length === 0)
     throw new WordNotFoundError(word);
@@ -30,14 +50,18 @@ async function translate(
   from: "en" | "id",
   to: "en" | "id",
   signal?: AbortSignal
-): Promise<string> {
-  const url = `${TRANSLATE_API}?q=${encodeURIComponent(text)}&langpair=${from}|${to}`;
-  const res = await fetch(url, { signal });
-  if (!res.ok) throw new Error(`Translation API error (${res.status})`);
+): Promise<{ best: string; candidates: string[] }> {
+  const url = `${TRANSLATE_API}?q=${encodeURIComponent(text)}&from=${from}&to=${to}`;
+  const res = await safeFetch(url, signal);
+  if (res.status === 404) throw new WordNotFoundError(text);
+  if (!res.ok) throw new NetworkError(`Translation API error (${res.status})`);
   const data = await res.json();
-  const translated: string | undefined = data?.responseData?.translatedText;
-  if (!translated) throw new WordNotFoundError(text);
-  return translated.trim();
+  const best: string | undefined = data?.translatedText;
+  if (!best) throw new WordNotFoundError(text);
+  const candidates: string[] = Array.isArray(data?.candidates)
+    ? data.candidates
+    : [best];
+  return { best: best.trim(), candidates };
 }
 
 /** Heuristic: does the input look Indonesian rather than English? */
@@ -71,7 +95,9 @@ export async function lookupWord(
     const entries = await fetchEnglishEntries(trimmed, signal);
     let indonesianTranslation = "";
     try {
-      indonesianTranslation = await translate(entries[0].word, "en", "id", signal);
+      indonesianTranslation = (
+        await translate(entries[0].word, "en", "id", signal)
+      ).best;
     } catch {
       indonesianTranslation = "";
     }
@@ -85,12 +111,15 @@ export async function lookupWord(
   }
 
   const english = await translate(trimmed, "id", "en", signal);
-  // MyMemory may return a phrase; try the full result, then the first word.
-  const candidates = [english, english.split(/\s+/)[0]].filter(
-    (c, i, arr) => c && arr.indexOf(c) === i
-  );
+  // Translation memories can surface junk as the top match ("kucing" → "neko"),
+  // so try every candidate — full phrase then its first word — against the
+  // dictionary until one resolves to a real English entry.
+  const candidates = english.candidates
+    .flatMap((c) => [c, c.split(/\s+/)[0]])
+    .filter((c, i, arr) => c && arr.indexOf(c) === i)
+    .slice(0, 8);
   let entries: DictionaryEntry[] | null = null;
-  let headword = english;
+  let headword = english.best;
   for (const candidate of candidates) {
     try {
       entries = await fetchEnglishEntries(candidate, signal);
