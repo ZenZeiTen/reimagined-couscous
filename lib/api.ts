@@ -120,16 +120,23 @@ export async function lookupWord(
     .slice(0, 8);
   let entries: DictionaryEntry[] | null = null;
   let headword = english.best;
+  let sawNetworkError = false;
   for (const candidate of candidates) {
     try {
       entries = await fetchEnglishEntries(candidate, signal);
       headword = entries[0].word;
       break;
     } catch (err) {
-      if (!(err instanceof WordNotFoundError)) throw err;
+      if ((err as Error)?.name === "AbortError") throw err;
+      // The upstream sometimes answers 502 instead of 404 for unknown
+      // words, so keep trying the remaining candidates on any failure.
+      if (err instanceof NetworkError) sawNetworkError = true;
     }
   }
-  if (!entries) throw new WordNotFoundError(trimmed);
+  if (!entries) {
+    if (sawNetworkError) throw new NetworkError();
+    throw new WordNotFoundError(trimmed);
+  }
   return {
     query: trimmed,
     direction,

@@ -12,7 +12,8 @@ function clean(text: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&apos;/g, "'")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .replace(/^[.,;:!?"'()\[\]]+|[.,;:!?"'()\[\]]+$/g, "");
 }
 
 export async function GET(request: NextRequest) {
