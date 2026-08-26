@@ -139,19 +139,33 @@ self.debug.draw(renderer, world=self.world, tilemap=self.tmap, camera=self.camer
 
 ## Examples
 
-Three runnable demos live under `examples/`. All assets are drawn
-programmatically — nothing binary is committed. Generate them, then run a demo:
+Four runnable demos live under `examples/`. All assets — sprites, tilesets and
+the levels themselves — are drawn or emitted programmatically, so nothing binary
+is committed. Generate them, then run one:
 
 ```bash
-python examples/generate_assets.py            # tilesets, sprites, Tiled levels
+python examples/generate_assets.py             # tilesets, sprites, Tiled levels
 python examples/mode7_racer/generate_assets.py
+python examples/coin_rush/generate_assets.py
 
-python examples/platformer/main.py     # side-scrolling platformer
+python examples/coin_rush/main.py      # ← a complete little game
+python examples/platformer/main.py     # minimal side-scroller
 python examples/topdown/main.py        # top-down RPG-style room
 python examples/mode7_racer/main.py    # F-Zero-style Mode 7 racer
 ```
 
-Controls: arrow keys / WASD to move, **Z** to jump or boost, **Esc** to quit.
+**Coin Rush** is the one to read first. It is a whole game rather than a feature
+demo — title screen, a timed run, a pause menu, deaths, a game over, and a high
+score that survives quitting — and it is the file to copy when starting your
+own. It exercises the engine end to end: a Tiled level with base64+zlib data and
+a non-trivial `firstgid`, entities placed from the map's object layer, coyote
+time and a jump buffer, one-way platforms you jump up through and drop down
+from, stomping, invulnerability flicker, parallax clouds, a bitmap-font HUD,
+iris and fade transitions, atomic saves, and an F1 debug overlay.
+
+Controls: arrow keys / WASD to move, **Z** to jump or boost, **Down+Z** to drop
+through a platform, **Enter** to pause, **F1** for the debug overlay, **Esc** to
+quit.
 
 ## Project layout
 
@@ -169,7 +183,11 @@ retroforge/
 ├── input/               # SNES-style input manager
 ├── audio/               # 8-channel audio engine
 └── utils/               # Vec2, fixed-point, timers/tweens, asset loader
-examples/                # platformer, top-down, and Mode 7 racer demos
+examples/
+├── coin_rush/           # a complete game: title, run, pause, game over, saves
+├── platformer/          # minimal side-scroller
+├── topdown/             # top-down room
+└── mode7_racer/         # Mode 7 showcase
 tools/                   # headless example smoke runner
 tests/                   # pytest suite (runs headless)
 ```

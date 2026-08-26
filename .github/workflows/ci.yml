@@ -35,6 +35,7 @@ jobs:
         run: |
           python examples/generate_assets.py
           python examples/mode7_racer/generate_assets.py
+          python examples/coin_rush/generate_assets.py
 
       - name: Smoke-run every example headless
         # Catches breakage that unit tests miss: the full engine loop driving a

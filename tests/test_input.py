@@ -170,6 +170,69 @@ def test_tap_shorter_than_a_frame_is_still_seen(monkeypatch):
     assert inp.is_pressed(Button.A) is False
 
 
+def test_two_taps_in_one_frame_reach_two_steps(monkeypatch):
+    """A hitching frame runs several fixed steps and can contain two real taps.
+
+    Latching edges as a flag rather than a count merged them into one, so the
+    second shot of a quick double-tap vanished during a stutter.
+    """
+    keyboard = _Keyboard()
+    monkeypatch.setattr(pygame.key, "get_pressed", lambda: keyboard)
+    inp = InputManager()
+
+    keyboard.down = set()
+    inp.update([
+        pygame.event.Event(pygame.KEYDOWN, key=TAP_KEY),
+        pygame.event.Event(pygame.KEYUP, key=TAP_KEY),
+        pygame.event.Event(pygame.KEYDOWN, key=TAP_KEY),
+        pygame.event.Event(pygame.KEYUP, key=TAP_KEY),
+    ])
+
+    # A 200ms hitch clamps to MAX_FRAME_TIME and runs three fixed steps.
+    seen = []
+    for _ in range(3):
+        inp.begin_step()
+        seen.append(inp.is_just_pressed(Button.A))
+    assert seen.count(True) == 2, f"both taps should be delivered, got {seen}"
+
+
+def test_key_repeat_is_not_a_second_press(monkeypatch):
+    """Holding a key can emit repeated KEYDOWNs; only the first is an edge."""
+    keyboard = _Keyboard()
+    monkeypatch.setattr(pygame.key, "get_pressed", lambda: keyboard)
+    inp = InputManager()
+
+    keyboard.down = {TAP_KEY}
+    inp.update([
+        pygame.event.Event(pygame.KEYDOWN, key=TAP_KEY),
+        pygame.event.Event(pygame.KEYDOWN, key=TAP_KEY),
+        pygame.event.Event(pygame.KEYDOWN, key=TAP_KEY),
+    ])
+    seen = []
+    for _ in range(3):
+        inp.begin_step()
+        seen.append(inp.is_just_pressed(Button.A))
+    assert seen == [True, False, False], seen
+
+
+def test_two_keys_on_one_button_tapped_together_give_one_edge(monkeypatch):
+    """Up and W pressed in the same frame is one button press, not two."""
+    keyboard = _Keyboard()
+    monkeypatch.setattr(pygame.key, "get_pressed", lambda: keyboard)
+    inp = InputManager()
+
+    keyboard.down = {pygame.K_UP, pygame.K_w}
+    inp.update([
+        pygame.event.Event(pygame.KEYDOWN, key=pygame.K_UP),
+        pygame.event.Event(pygame.KEYDOWN, key=pygame.K_w),
+    ])
+    seen = []
+    for _ in range(3):
+        inp.begin_step()
+        seen.append(inp.is_just_pressed(Button.UP))
+    assert seen == [True, False, False], seen
+
+
 def test_reset_clears_held_state_and_pending_edges(monkeypatch):
     keyboard = _Keyboard()
     monkeypatch.setattr(pygame.key, "get_pressed", lambda: keyboard)

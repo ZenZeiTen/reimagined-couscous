@@ -150,6 +150,10 @@ class Sprite:
         self.frame_idx = 0
         self.pos = pos if pos is not None else Vec2()
         self.palette_id = palette_id
+        #: Draw-order hint. A lone Sprite draws whenever you blit it, so this
+        #: only means something to whatever sorts them — ``World`` sorts on
+        #: ``Entity.priority``, and ``TileLayer.render(only_priority=...)``
+        #: splits a tile layer around the sprites.
         self.priority = priority
         self.flip_h = False
         self.flip_v = False

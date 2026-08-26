@@ -24,7 +24,10 @@ import pygame  # noqa: E402  (must follow the SDL env setup)
 
 import retroforge as rf  # noqa: E402
 
-EXAMPLES = ["platformer", "topdown", "mode7_racer"]
+EXAMPLES = ["platformer", "topdown", "mode7_racer", "coin_rush"]
+
+# Some examples open on a title screen; name the scene to smoke-test instead.
+ENTRY_SCENE = {"coin_rush": "Game"}
 
 
 def _load(name: str):
@@ -35,7 +38,10 @@ def _load(name: str):
     return module
 
 
-def _scene_class(module):
+def _scene_class(module, name: str):
+    wanted = ENTRY_SCENE.get(name)
+    if wanted is not None:
+        return getattr(module, wanted)
     for value in vars(module).values():
         if (isinstance(value, type) and issubclass(value, rf.Scene)
                 and value not in (rf.Scene, rf.Transition)):
@@ -49,7 +55,7 @@ def run(name: str, frames: int) -> bool:
         module = _load(name)
         renderer = rf.Renderer(*rf.RES_GENESIS, scale=1, vsync=False)
         engine = rf.GameEngine(renderer, init_audio=False)
-        engine.step(frames, _scene_class(module)())
+        engine.step(frames, _scene_class(module, name)())
     except Exception:
         print(f"FAIL {name}")
         traceback.print_exc()
