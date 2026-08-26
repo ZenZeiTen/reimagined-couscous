@@ -21,12 +21,19 @@ class Scene:
 
     #: When True, the scene below this one still draws (overlay menus, etc.).
     transparent: bool = False
+    #: When True, the scene below this one also keeps *updating*. Off by default
+    #: so a pushed pause menu freezes the level; turn it on for a HUD or dialogue
+    #: overlay that should not stop the world.
+    update_below: bool = False
 
     def on_enter(self, engine) -> None:  # noqa: ANN001 - avoid import cycle
         """Called when the scene is pushed onto the stack."""
 
     def on_exit(self) -> None:
         """Called when the scene is popped off the stack."""
+
+    def on_pause(self) -> None:
+        """Called when a scene is pushed on top of this one, covering it."""
 
     def on_resume(self) -> None:
         """Called when a scene above this one is popped, exposing it again."""
@@ -54,7 +61,24 @@ class SceneManager:
     def is_empty(self) -> bool:
         return not self._stack
 
+    def _check_bound_for(self, scene: Scene) -> None:
+        """Refuse to hand ``None`` to a scene that actually reads the engine.
+
+        An unbound manager is fine on its own — it only matters for scenes that
+        override ``on_enter``, which would otherwise stash None and fail much
+        later with a confusing AttributeError.
+        """
+        if self._engine is None and type(scene).on_enter is not Scene.on_enter:
+            raise RuntimeError(
+                f"{type(scene).__name__}.on_enter expects an engine but the "
+                "SceneManager is unbound. Pass the manager to GameEngine("
+                "scene_manager=...) before pushing, or call bind(engine)."
+            )
+
     def push(self, scene: Scene) -> None:
+        self._check_bound_for(scene)
+        if self._stack:
+            self._stack[-1].on_pause()
         self._stack.append(scene)
         scene.on_enter(self._engine)
 
@@ -66,9 +90,13 @@ class SceneManager:
             self._stack[-1].on_resume()
 
     def replace(self, scene: Scene) -> None:
+        self._check_bound_for(scene)
         if self._stack:
+            # Pop without pausing the scene beneath — it is about to be covered
+            # again immediately by the replacement.
             self._stack.pop().on_exit()
-        self.push(scene)
+        self._stack.append(scene)
+        scene.on_enter(self._engine)
 
     def clear(self) -> None:
         while self._stack:
@@ -76,8 +104,18 @@ class SceneManager:
 
     # -- per-frame ------------------------------------------------------------
     def update(self, dt: float, inp: InputManager) -> None:
-        if self._stack:
-            self._stack[-1].update(dt, inp)
+        if not self._stack:
+            return
+        # Walk down through scenes that let the one beneath keep running, then
+        # update bottom-up so the top scene still acts last.
+        first = len(self._stack) - 1
+        while first > 0 and self._stack[first].update_below:
+            first -= 1
+        for scene in list(self._stack[first:]):
+            # The stack can be mutated mid-update (a scene popping itself), so
+            # skip anything that has since left.
+            if scene in self._stack:
+                scene.update(dt, inp)
 
     def draw(self, renderer: Renderer) -> None:
         if not self._stack:

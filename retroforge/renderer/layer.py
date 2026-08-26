@@ -8,6 +8,12 @@ which runs entirely in pygame's C layer and is dramatically faster than a Python
 
 Flipped tile variants are looked up by OR-ing flip bits into the tile id, using
 the variants the asset loader pre-generated — so the hot path never allocates.
+
+Palette handling mirrors ``SpriteSheet``: for 8-bit indexed tilesets, each
+(tile, sub-palette) pair gets its own recoloured surface, cached on the layer and
+rebuilt when the palette's revision changes. That is what makes the per-tile
+sub-palette attribute and whole-screen effects — fades, cross-fades, and the
+colour cycling that animates water and lava — actually reach the screen.
 """
 
 from __future__ import annotations
@@ -16,6 +22,9 @@ import pygame
 
 from ..graphics.tilemap import EMPTY_TILE, TileMap
 from ..utils.asset_loader import FLIP_H_BIT, FLIP_V_BIT
+from .palette import ColorPalette
+
+_FLIP_MASK = FLIP_H_BIT | FLIP_V_BIT
 
 
 class TileLayer:
@@ -39,15 +48,42 @@ class TileLayer:
         self.visible = visible
         self.wrap_x = wrap_x
         self.wrap_y = wrap_y
+        # (tile_key, palette_id) -> recoloured surface
+        self._variants: dict[tuple[int, int], pygame.Surface] = {}
+        self._palette_token: tuple[int, int] | None = None
 
-    def render(self, surface: pygame.Surface, camera_x: float, camera_y: float) -> None:
+    def _prepare(self, key: int, pal_id: int,
+                 palette: ColorPalette | None) -> pygame.Surface | None:
+        surf = self.tileset.get(key)
+        if surf is None:
+            surf = self.tileset.get(key & ~_FLIP_MASK)
+        if surf is None or palette is None or surf.get_bitsize() != 8:
+            return surf
+
+        cache_key = (key, pal_id)
+        cached = self._variants.get(cache_key)
+        if cached is None:
+            cached = surf.copy()
+            cached.set_palette(palette.as_pygame_colorlist(pal_id))
+            self._variants[cache_key] = cached
+        return cached
+
+    def render(self, surface: pygame.Surface, camera_x: float, camera_y: float,
+               palette: ColorPalette | None = None) -> None:
         """Blit the visible portion of the layer onto ``surface``.
 
         ``camera_x/y`` are the world-space top-left of the view. The layer's own
-        ``scroll_rate`` scales them to produce parallax.
+        ``scroll_rate`` scales them to produce parallax. Pass ``palette`` (for an
+        indexed tileset) to honour per-tile sub-palettes and palette effects.
         """
         if not self.visible:
             return
+
+        if palette is not None:
+            token = (palette.uid, palette.revision)
+            if token != self._palette_token:
+                self._palette_token = token
+                self._variants.clear()
 
         tm = self.tilemap
         tw, th = tm.tile_w, tm.tile_h
@@ -91,7 +127,8 @@ class TileLayer:
                 if tm.flip_v[ty, tx]:
                     key |= FLIP_V_BIT
 
-                tile_surf = self.tileset.get(key) or self.tileset.get(tile_id)
+                pal_id = int(tm.palette[ty, tx]) if palette is not None else -1
+                tile_surf = self._prepare(key, pal_id, palette)
                 if tile_surf is not None:
                     blit_list.append((tile_surf, (dx, dy)))
 

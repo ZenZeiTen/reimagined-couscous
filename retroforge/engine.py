@@ -74,11 +74,16 @@ class GameEngine:
             if not self._running:
                 break
 
-            # Drain fixed physics steps.
+            # Drain fixed physics steps. begin_step hands each step the input
+            # edges latched since the previous one, so a press is never missed
+            # on a frame that runs no step nor repeated on one that runs several.
             while self._accumulator >= PHYSICS_DT:
+                self.input.begin_step()
                 self.scenes.update(PHYSICS_DT, self.input)
                 self._accumulator -= PHYSICS_DT
-                if self.scenes.is_empty:
+                # A scene that called quit() (or popped the last scene) must not
+                # get another step simulated after it asked to stop.
+                if not self._running or self.scenes.is_empty:
                     self._running = False
                     break
 
@@ -88,14 +93,21 @@ class GameEngine:
             self.renderer.end_frame()
             self.clock.tick(self.fps_limit)
 
-    def step(self, frames: int = 1) -> None:
-        """Run a fixed number of full update+draw frames (used for tests).
+        # Unwind the stack so every scene's on_exit runs — that is where games
+        # flush saves and release resources.
+        self.scenes.clear()
+
+    def step(self, frames: int = 1, scene: Scene | None = None) -> None:
+        """Run ``frames`` update+draw iterations, one fixed step each.
 
         Unlike ``run`` this does not block on a real clock — handy for headless
-        smoke testing of the whole pipeline.
+        smoke testing of the whole pipeline. Pass ``scene`` to push it first.
         """
+        if scene is not None:
+            self.scenes.push(scene)
         for _ in range(frames):
             self._pump_events()
+            self.input.begin_step()
             self.scenes.update(PHYSICS_DT, self.input)
             self.renderer.begin_frame()
             self.scenes.draw(self.renderer)
@@ -112,4 +124,8 @@ class GameEngine:
         for e in events:
             if e.type == pygame.QUIT:
                 self._running = False
+            elif e.type == pygame.VIDEORESIZE:
+                self.renderer.handle_resize(e.size)
+        # Focus loss is handled inside update(), which sees the same batch and
+        # can order it against the events that arrived alongside it.
         self.input.update(events)

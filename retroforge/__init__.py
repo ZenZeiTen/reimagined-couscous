@@ -17,6 +17,7 @@ from .renderer.palette import ColorPalette
 from .renderer.layer import TileLayer
 from .renderer.mode7 import Mode7
 from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
+from .graphics.font import BitmapFont
 from .graphics.camera import Camera2D
 from .graphics.tilemap import TileData, TileMap
 from .physics.body import RigidBody2D
@@ -45,6 +46,7 @@ __all__ = [
     "Sprite",
     "AnimatedSprite",
     "SpriteSheet",
+    "BitmapFont",
     "Camera2D",
     "TileMap",
     "TileData",

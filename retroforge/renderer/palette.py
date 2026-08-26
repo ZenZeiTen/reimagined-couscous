@@ -19,15 +19,35 @@ COLORS_PER_PALETTE = 16
 
 RGBA = tuple[int, int, int, int]
 
+_next_uid = 0
+
 
 class ColorPalette:
     """16 sub-palettes x 16 RGBA colours."""
 
     def __init__(self) -> None:
+        global _next_uid
+        _next_uid += 1
+        #: Unique per instance. Paired with ``revision`` it identifies an exact
+        #: palette state, so caches keyed on it can never collide across the
+        #: fresh objects that ``fade``/``lerp_to`` return each frame.
+        self.uid = _next_uid
         # Shape (palette, color, channel). Channel order is R, G, B, A.
         self._data = np.zeros((NUM_PALETTES, COLORS_PER_PALETTE, 4), dtype=np.uint8)
         # Default everything opaque; index 0 of palette 0 is the backdrop colour.
         self._data[..., 3] = 255
+        # Bumped on every mutation so caches of recoloured surfaces (see
+        # SpriteSheet) can tell when they have gone stale.
+        self._revision = 0
+
+    @property
+    def revision(self) -> int:
+        """Increments whenever any colour changes. Cache keys can include it."""
+        return self._revision
+
+    def touch(self) -> None:
+        """Mark the palette dirty after writing through ``.data`` directly."""
+        self._revision += 1
 
     # -- single colour access -------------------------------------------------
     def set_color(
@@ -40,6 +60,7 @@ class ColorPalette:
         a: int = 255,
     ) -> None:
         self._data[palette_idx, color_idx] = (r, g, b, a)
+        self._revision += 1
 
     def get_rgba(self, palette_idx: int, color_idx: int) -> RGBA:
         r, g, b, a = self._data[palette_idx, color_idx]
@@ -52,6 +73,7 @@ class ColorPalette:
                 self._data[palette_idx, i] = (c[0], c[1], c[2], 255)
             else:
                 self._data[palette_idx, i] = c
+        self._revision += 1
 
     # -- pygame interop -------------------------------------------------------
     def as_pygame_colorlist(self, palette_idx: int) -> list[RGBA]:
@@ -97,6 +119,7 @@ class ColorPalette:
         """
         block = self._data[palette_idx, start:end]
         self._data[palette_idx, start:end] = np.roll(block, steps, axis=0)
+        self._revision += 1
 
     # -- introspection --------------------------------------------------------
     @property
