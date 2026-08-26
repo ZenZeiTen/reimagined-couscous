@@ -83,8 +83,15 @@ class Vec2:
     # -- pixel helpers --------------------------------------------------------
     @property
     def ixy(self) -> tuple[int, int]:
-        """Integer pixel coordinates (truncated, matching hardware snapping)."""
-        return (int(self.x), int(self.y))
+        """Integer pixel coordinates, floored.
+
+        Flooring rather than truncating matters because truncation is not
+        monotonic across zero: -0.5 and +0.5 both truncate to 0, so a sprite
+        scrolling leftward past the origin sits on pixel 0 for twice as long as
+        on every other pixel and visibly stutters. Flooring gives every pixel an
+        equal share.
+        """
+        return (math.floor(self.x), math.floor(self.y))
 
     def floor(self) -> "Vec2":
         return Vec2(math.floor(self.x), math.floor(self.y))

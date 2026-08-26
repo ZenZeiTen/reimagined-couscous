@@ -61,6 +61,7 @@ class Mode7Racer(rf.Scene):
         r = engine.renderer
 
         # --- sky ---
+        self.font  = rf.BitmapFont.default()
         self._sky  = _bake_sky(r.width, HORIZON_Y)
         self._stars = _gen_stars(r.width, HORIZON_Y, count=55, seed=7)
         self._sun_pos = (r.width - 60, HORIZON_Y - 14)
@@ -73,10 +74,10 @@ class Mode7Racer(rf.Scene):
         self.m7.fov        = 88.0
         self.m7.scale      = 1.15
 
-        # Colour cycling setup: keep a pristine copy of the pixel array and a
-        # boolean mask of which pixels are the yellow lane markers.
-        self._track_base  = self.m7._src_rgb.copy()   # (512, 512, 3) uint8
-        base = self._track_base
+        # Colour cycling: find the yellow lane-marker pixels once, then rewrite
+        # just those each frame. The mask never changes, so there is no need to
+        # restore the rest of the 768 KB array.
+        base = self.m7.pixels
         self._marker_mask = (base[:, :, 0] > 200) & \
                             (base[:, :, 1] > 160) & \
                             (base[:, :, 2] <  30)  # selects (255,220,0) yellow
@@ -126,9 +127,13 @@ class Mode7Racer(rf.Scene):
             steer += TURN_RATE
         self.angle += steer * dt
 
-        # Advance camera along heading
-        self.pos_x += math.sin(self.angle) * self.speed * dt
-        self.pos_y += math.cos(self.angle) * self.speed * dt
+        # Advance the camera along its heading. Mode7.forward() is the same
+        # vector the renderer puts at the centre of the screen, so what you
+        # steer toward is what you drive into.
+        self.m7.angle = self.angle
+        fwd = self.m7.forward()
+        self.pos_x += fwd.x * self.speed * dt
+        self.pos_y += fwd.y * self.speed * dt
         self.m7.pivot = rf.Vec2(self.pos_x % 512, self.pos_y % 512)
 
         # During boost: subtle angle wobble for vibration feel
@@ -144,8 +149,7 @@ class Mode7Racer(rf.Scene):
         lo = _CYCLE[int(idx_f) % n]
         hi = _CYCLE[(int(idx_f) + 1) % n]
         color = _lerp_color(lo, hi, idx_f % 1.0)
-        self.m7._src_rgb[:] = self._track_base
-        self.m7._src_rgb[self._marker_mask] = color
+        self.m7.pixels[self._marker_mask] = color
 
         # Decay flash
         self._flash_a = max(0.0, self._flash_a - 400.0 * dt)
@@ -188,6 +192,15 @@ class Mode7Racer(rf.Scene):
 
         # 8. HUD — boost charge bar (bottom-right corner)
         _draw_hud(tgt, w, h, self._boost_cd, BOOST_DUR + BOOST_CD)
+
+        # 9. Text HUD — speed readout and a boost prompt when it is ready.
+        kph = int(self.speed * 3.2)
+        self.font.draw(tgt, f"{kph:>3} KPH", 6, 6, (255, 245, 200),
+                       shadow=(20, 10, 0))
+        self.font.draw(tgt, "BOOST" if self._boost_cd <= 0.0 else "CHARGING",
+                       w - 6, h - 20,
+                       (0, 255, 180) if self._boost_cd <= 0.0 else (90, 110, 120),
+                       align="right", shadow=(0, 20, 15))
 
 
 # ---------------------------------------------------------------------------

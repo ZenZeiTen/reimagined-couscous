@@ -19,9 +19,20 @@ from .renderer.mode7 import Mode7
 from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
 from .graphics.font import BitmapFont
 from .graphics.camera import Camera2D
-from .graphics.tilemap import TileData, TileMap
-from .physics.body import RigidBody2D
-from .physics.collision import move_and_slide, aabb_overlap
+from .graphics.tilemap import MapObject, TileData, TileMap
+from .physics.body import Layer, RigidBody2D
+from .physics.collision import (
+    SpatialHash,
+    aabb_overlap,
+    depenetrate,
+    layers_interact,
+    move_and_slide,
+    overlaps,
+    query,
+    resolve_overlaps,
+    sweep_aabb,
+    sweep_first,
+)
 from .input.input import Button, InputManager
 from .audio.audio import AudioEngine
 from .utils.vec2 import Vec2
@@ -50,9 +61,19 @@ __all__ = [
     "Camera2D",
     "TileMap",
     "TileData",
+    "MapObject",
     "RigidBody2D",
+    "Layer",
     "move_and_slide",
+    "depenetrate",
     "aabb_overlap",
+    "overlaps",
+    "layers_interact",
+    "query",
+    "sweep_aabb",
+    "sweep_first",
+    "resolve_overlaps",
+    "SpatialHash",
     "Button",
     "InputManager",
     "AudioEngine",
