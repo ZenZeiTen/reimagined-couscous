@@ -58,7 +58,7 @@ def test_many_sprites_each_keep_their_own_palette():
 
     sprites = [Sprite(sheet, Vec2(0, 0), palette_id=i) for i in range(len(wanted))]
     for _ in range(3):
-        for sprite, colour in zip(sprites, wanted):
+        for sprite, colour in zip(sprites, wanted, strict=True):
             assert _pixel(sprite, palette) == colour
 
 

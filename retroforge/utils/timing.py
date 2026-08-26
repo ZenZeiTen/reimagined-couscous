@@ -20,7 +20,7 @@ depends on frame rate and everything pauses when the scene does.
 from __future__ import annotations
 
 import math
-from typing import Callable
+from collections.abc import Callable
 
 # ---------------------------------------------------------------------------
 # Easing — all take and return a normalised 0..1 progress.
@@ -116,7 +116,7 @@ def _resolve(ease) -> Callable[[float], float]:
 class Timer:
     """A delayed or repeating callback."""
 
-    __slots__ = ("delay", "callback", "repeat", "remaining", "done", "_args")
+    __slots__ = ("_args", "callback", "delay", "done", "remaining", "repeat")
 
     def __init__(self, delay: float, callback: Callable, repeat: bool = False,
                  args: tuple = ()) -> None:
@@ -155,8 +155,16 @@ class Timer:
 class Tween:
     """Interpolates a value over a duration and reports it to a setter."""
 
-    __slots__ = ("duration", "start", "end", "setter", "ease", "on_complete",
-                 "elapsed", "done")
+    __slots__ = (
+        "done",
+        "duration",
+        "ease",
+        "elapsed",
+        "end",
+        "on_complete",
+        "setter",
+        "start",
+    )
 
     def __init__(self, duration: float, start: float, end: float,
                  setter: Callable[[float], None], ease=None,

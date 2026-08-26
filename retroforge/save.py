@@ -99,7 +99,7 @@ class SaveManager:
         so a bad file costs the player one slot instead of the whole game.
         """
         try:
-            with open(self.slot_path(slot), "r", encoding="utf-8") as fh:
+            with open(self.slot_path(slot), encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, json.JSONDecodeError):
             return dict(default) if default is not None else None
@@ -126,7 +126,7 @@ class SaveManager:
 
     def read_settings(self, default: dict | None = None) -> dict:
         try:
-            with open(self.settings_path, "r", encoding="utf-8") as fh:
+            with open(self.settings_path, encoding="utf-8") as fh:
                 data = json.load(fh)
         except (OSError, json.JSONDecodeError):
             return dict(default) if default else {}

@@ -50,5 +50,7 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install ruff
-      - run: ruff check retroforge examples tools
+      # Pinned, and the rule set is declared in pyproject, so a lint run means
+      # the same thing here as on a contributor's machine.
+      - run: pip install ruff==0.15.8
+      - run: ruff check retroforge examples tools tests

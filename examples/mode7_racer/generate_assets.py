@@ -19,7 +19,7 @@ ASSETS = os.path.join(HERE, "assets")
 
 
 def make_track(path: str, size: int = 512) -> None:
-    """512×512 24-bit race track for Mode 7 (tiles seamlessly on all axes)."""
+    """512x512 24-bit race track for Mode 7 (tiles seamlessly on all axes)."""
     surf = pygame.Surface((size, size))
 
     ASPHALT = (28, 28, 36)
@@ -66,7 +66,7 @@ def make_track(path: str, size: int = 512) -> None:
 
 
 def make_ship(path: str) -> None:
-    """32×24 top-down racing craft with SRCALPHA transparency."""
+    """32x24 top-down racing craft with SRCALPHA transparency."""
     surf = pygame.Surface((32, 24), pygame.SRCALPHA)
 
     BODY     = (75,  135, 220)

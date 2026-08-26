@@ -12,20 +12,15 @@ game actually ships with: text, entities, collision, timers, saves, and a debug
 overlay.
 """
 
-from .engine import GameEngine, PHYSICS_DT, PHYSICS_HZ
-from .scene import Scene, SceneManager
-from .transition import Transition
-from .entity import Entity, World
+from .audio.audio import AudioEngine
 from .debug import DebugOverlay
-from .save import SaveManager, save_dir
-from .renderer.renderer import Renderer, RES_GENESIS, RES_SNES, RES_TALL
-from .renderer.palette import ColorPalette
-from .renderer.layer import TileLayer
-from .renderer.mode7 import Mode7
-from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
-from .graphics.font import BitmapFont
+from .engine import PHYSICS_DT, PHYSICS_HZ, GameEngine
+from .entity import Entity, World
 from .graphics.camera import Camera2D
+from .graphics.font import BitmapFont
+from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
 from .graphics.tilemap import EMPTY_TILE, MapObject, TileData, TileMap
+from .input.input import Button, InputManager
 from .physics.body import Layer, RigidBody2D
 from .physics.collision import (
     SpatialHash,
@@ -39,9 +34,14 @@ from .physics.collision import (
     sweep_aabb,
     sweep_first,
 )
-from .input.input import Button, InputManager
-from .audio.audio import AudioEngine
-from .utils.vec2 import Vec2
+from .renderer.layer import TileLayer
+from .renderer.mode7 import Mode7
+from .renderer.palette import ColorPalette
+from .renderer.renderer import RES_GENESIS, RES_SNES, RES_TALL, Renderer
+from .save import SaveManager, save_dir
+from .scene import Scene, SceneManager
+from .transition import Transition
+from .utils import asset_loader
 from .utils.fixed import Fixed
 from .utils.timing import (
     EASINGS,
@@ -59,7 +59,7 @@ from .utils.timing import (
     ease_out_quad,
     linear,
 )
-from .utils import asset_loader
+from .utils.vec2 import Vec2
 
 __version__ = "0.2.0"
 

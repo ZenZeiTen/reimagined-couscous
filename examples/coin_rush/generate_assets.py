@@ -225,7 +225,7 @@ def build_level() -> tuple[list[int], list[dict]]:
 
 def write_level(path: str) -> None:
     gids, objects = build_level()
-    blob = bytes()
+    blob = b""
     for gid in gids:
         blob += int(gid).to_bytes(4, "little")
     data = base64.b64encode(zlib.compress(blob)).decode("ascii")

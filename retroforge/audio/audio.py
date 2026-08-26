@@ -33,8 +33,8 @@ class AudioEngine:
             self.available = False
 
     # -- sound effects --------------------------------------------------------
-    def play_sfx(self, sound: "pygame.mixer.Sound | None", channel: int = -1,
-                 volume: float = 1.0) -> "pygame.mixer.Channel | None":
+    def play_sfx(self, sound: pygame.mixer.Sound | None, channel: int = -1,
+                 volume: float = 1.0) -> pygame.mixer.Channel | None:
         if not self.available or sound is None:
             return None
         sound.set_volume(volume * self._sfx_vol * self._master)
@@ -47,8 +47,8 @@ class AudioEngine:
             ch.play(sound)
         return ch
 
-    def play_sfx_panned(self, sound: "pygame.mixer.Sound | None", pan: float = 0.0,
-                        volume: float = 1.0) -> "pygame.mixer.Channel | None":
+    def play_sfx_panned(self, sound: pygame.mixer.Sound | None, pan: float = 0.0,
+                        volume: float = 1.0) -> pygame.mixer.Channel | None:
         """Play with stereo placement: ``pan`` -1 is hard left, +1 hard right.
 
         Positioning effects relative to the player is most of what sells a wide

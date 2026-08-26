@@ -18,7 +18,7 @@ import pygame
 from ..graphics.tilemap import TileMap
 
 _surface_cache: dict[tuple[str, bool], pygame.Surface] = {}
-_sound_cache: dict[str, "pygame.mixer.Sound | None"] = {}
+_sound_cache: dict[str, pygame.mixer.Sound | None] = {}
 
 
 def load_image(path: str, *, keep_indexed: bool = False) -> pygame.Surface:
@@ -76,7 +76,7 @@ def load_tileset(
     return tiles
 
 
-def load_sound(path: str) -> "pygame.mixer.Sound | None":
+def load_sound(path: str) -> pygame.mixer.Sound | None:
     """Load a WAV/OGG, or return None when there is no audio device.
 
     AudioEngine already degrades to a no-op headlessly so the same game code

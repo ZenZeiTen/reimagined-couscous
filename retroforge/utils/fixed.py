@@ -45,19 +45,19 @@ class Fixed:
 
     # -- construction ---------------------------------------------------------
     @classmethod
-    def from_float(cls, f: float) -> "Fixed":
-        return cls(int(round(f * ONE)))
+    def from_float(cls, f: float) -> Fixed:
+        return cls(round(f * ONE))
 
     @classmethod
-    def from_int(cls, i: int) -> "Fixed":
+    def from_int(cls, i: int) -> Fixed:
         return cls(int(i) << FRAC_BITS)
 
     @classmethod
-    def zero(cls) -> "Fixed":
+    def zero(cls) -> Fixed:
         return cls(0)
 
     @classmethod
-    def one(cls) -> "Fixed":
+    def one(cls) -> Fixed:
         return cls(ONE)
 
     # -- conversion -----------------------------------------------------------
@@ -76,13 +76,13 @@ class Fixed:
         return MIN_RAW <= self.raw <= MAX_RAW
 
     # -- arithmetic -----------------------------------------------------------
-    def __add__(self, other: "Fixed") -> "Fixed":
+    def __add__(self, other: Fixed) -> Fixed:
         return Fixed(self.raw + other.raw)
 
-    def __sub__(self, other: "Fixed") -> "Fixed":
+    def __sub__(self, other: Fixed) -> Fixed:
         return Fixed(self.raw - other.raw)
 
-    def __mul__(self, other: "Fixed") -> "Fixed":
+    def __mul__(self, other: Fixed) -> Fixed:
         # Multiply the raw values then shift back down to remove the extra
         # fractional scaling introduced by the product. The shift is applied to
         # the magnitude so both signs truncate toward zero: a plain `>>` floors,
@@ -92,7 +92,7 @@ class Fixed:
             return Fixed(-((-product) >> FRAC_BITS))
         return Fixed(product >> FRAC_BITS)
 
-    def __floordiv__(self, other: "Fixed") -> "Fixed":
+    def __floordiv__(self, other: Fixed) -> Fixed:
         # Shift the numerator up first so the quotient lands back in Q16.16.
         if other.raw == 0:
             raise ZeroDivisionError("Fixed division by zero")
@@ -103,10 +103,10 @@ class Fixed:
 
     __truediv__ = __floordiv__
 
-    def __neg__(self) -> "Fixed":
+    def __neg__(self) -> Fixed:
         return Fixed(-self.raw)
 
-    def __abs__(self) -> "Fixed":
+    def __abs__(self) -> Fixed:
         return Fixed(abs(self.raw))
 
     # -- comparison -----------------------------------------------------------
@@ -115,16 +115,16 @@ class Fixed:
             return NotImplemented
         return self.raw == other.raw
 
-    def __lt__(self, other: "Fixed") -> bool:
+    def __lt__(self, other: Fixed) -> bool:
         return self.raw < other.raw
 
-    def __le__(self, other: "Fixed") -> bool:
+    def __le__(self, other: Fixed) -> bool:
         return self.raw <= other.raw
 
-    def __gt__(self, other: "Fixed") -> bool:
+    def __gt__(self, other: Fixed) -> bool:
         return self.raw > other.raw
 
-    def __ge__(self, other: "Fixed") -> bool:
+    def __ge__(self, other: Fixed) -> bool:
         return self.raw >= other.raw
 
     def __hash__(self) -> int:

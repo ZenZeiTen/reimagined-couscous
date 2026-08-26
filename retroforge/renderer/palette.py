@@ -81,12 +81,12 @@ class ColorPalette:
         return [tuple(int(v) for v in c) for c in self._data[palette_idx]]
 
     # -- whole-palette effects (vectorised) -----------------------------------
-    def copy(self) -> "ColorPalette":
+    def copy(self) -> ColorPalette:
         clone = ColorPalette()
         clone._data = self._data.copy()
         return clone
 
-    def fade(self, t: float, to_white: bool = False) -> "ColorPalette":
+    def fade(self, t: float, to_white: bool = False) -> ColorPalette:
         """Return a faded copy: ``t`` in [0,1], 0 = unchanged, 1 = fully faded.
 
         Fades toward black by default, or toward white when ``to_white`` is set.
@@ -102,7 +102,7 @@ class ColorPalette:
         out._data[..., :3] = np.clip(rgb, 0, 255).astype(np.uint8)
         return out
 
-    def lerp_to(self, other: "ColorPalette", t: float) -> "ColorPalette":
+    def lerp_to(self, other: ColorPalette, t: float) -> ColorPalette:
         """Interpolate toward another palette — used for scene transitions."""
         t = max(0.0, min(1.0, t))
         out = self.copy()

@@ -31,14 +31,13 @@ than a handful of entities.
 from __future__ import annotations
 
 import math
-from typing import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 
 import pygame
 
 from ..graphics.tilemap import TileMap
 from ..physics.body import Layer, RigidBody2D
 from ..utils.vec2 import Vec2
-
 
 # ---------------------------------------------------------------------------
 # Tile collision

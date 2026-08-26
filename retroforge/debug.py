@@ -18,7 +18,7 @@ the overlay deliberately does not steal a button from the game.
 from __future__ import annotations
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
 import pygame
 

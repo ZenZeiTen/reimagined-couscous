@@ -20,9 +20,12 @@ os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-import pygame  # noqa: E402  (must follow the SDL env setup)
+# These imports have to follow the SDL_VIDEODRIVER setup above: pygame reads
+# those variables when it initialises, so importing first would pick a real
+# display driver and fail on a headless runner.
+import pygame
 
-import retroforge as rf  # noqa: E402
+import retroforge as rf
 
 EXAMPLES = ["platformer", "topdown", "mode7_racer", "coin_rush"]
 

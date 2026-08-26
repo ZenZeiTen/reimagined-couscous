@@ -210,7 +210,7 @@ class TileMap:
         layer_name: str | None = None,
         solid_property: str = "solid",
         one_way_property: str = "one_way",
-    ) -> "TileMap":
+    ) -> TileMap:
         """Build a TileMap from parsed Tiled JSON map data.
 
         Reads one tile layer (by ``layer_name`` if given, else ``layer_index``).
@@ -288,8 +288,8 @@ class TileMap:
         return tmap
 
     @classmethod
-    def load_tiled(cls, path: str, layer_index: int = 0, **kwargs) -> "TileMap":
-        with open(path, "r", encoding="utf-8") as fh:
+    def load_tiled(cls, path: str, layer_index: int = 0, **kwargs) -> TileMap:
+        with open(path, encoding="utf-8") as fh:
             return cls.from_tiled_json(json.load(fh), layer_index, **kwargs)
 
 

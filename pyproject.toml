@@ -27,7 +27,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=7.0", "black", "ruff"]
+dev = ["pytest>=7.0", "ruff==0.15.8"]
 
 [project.urls]
 Homepage = "https://github.com/zenzeiten/reimagined-couscous"
@@ -43,3 +43,34 @@ retroforge = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.ruff]
+# Pinned explicitly so a lint run means the same thing locally and in CI.
+# Ruff's implicit defaults differ between versions and environments, which is
+# how a branch passes on a laptop and fails on a runner.
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "RUF",  # ruff-specific
+]
+ignore = [
+    # Examples and tools set SDL env vars before importing pygame, which has to
+    # happen before the import to take effect.
+    "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into private state deliberately to drive the exact conditions a
+# bug needed, and assert on wide tuples.
+"tests/*" = ["E501"]
+# __all__ is grouped by subsystem with headings, which tells a reader far more
+# about the API's shape than alphabetical order would.
+"retroforge/__init__.py" = ["RUF022"]

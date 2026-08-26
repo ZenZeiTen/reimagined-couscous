@@ -28,7 +28,7 @@ behind the pack and 2 in front. Within one priority they draw in spawn order.
 
 from __future__ import annotations
 
-from typing import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 
 import pygame
 
@@ -68,7 +68,7 @@ class Entity:
         self.alive = True
         self.priority = priority
         self.tags = set(tags)
-        self.world: "World | None" = None
+        self.world: World | None = None
 
     # -- convenience passthroughs --------------------------------------------
     @property
@@ -119,13 +119,13 @@ class Entity:
         self.alive = False
 
     # -- lifecycle hooks ------------------------------------------------------
-    def on_spawn(self, world: "World") -> None:
+    def on_spawn(self, world: World) -> None:
         """Called once when added to a world."""
 
     def on_despawn(self) -> None:
         """Called once when removed from a world."""
 
-    def update(self, dt: float, world: "World") -> None:
+    def update(self, dt: float, world: World) -> None:
         """Advance this entity. Call ``world.move(self, dt)`` to apply physics."""
 
     def draw(self, surface: pygame.Surface, camera_x: float, camera_y: float,

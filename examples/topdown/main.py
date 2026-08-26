@@ -20,7 +20,7 @@ import pygame
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import retroforge as rf  # noqa: E402
+import retroforge as rf
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 SPEED = 90.0  # px/s

@@ -26,7 +26,7 @@ class Scene:
     #: overlay that should not stop the world.
     update_below: bool = False
 
-    def on_enter(self, engine) -> None:  # noqa: ANN001 - avoid import cycle
+    def on_enter(self, engine) -> None:
         """Called when the scene is pushed onto the stack."""
 
     def on_exit(self) -> None:
@@ -50,7 +50,7 @@ class SceneManager:
         self._stack: list[Scene] = []
         self._engine = None
 
-    def bind(self, engine) -> None:  # noqa: ANN001
+    def bind(self, engine) -> None:
         self._engine = engine
 
     @property

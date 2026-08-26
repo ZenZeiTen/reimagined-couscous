@@ -2,7 +2,7 @@
 
 import math
 
-from retroforge.utils.fixed import Fixed, ONE
+from retroforge.utils.fixed import ONE, Fixed
 
 
 def test_from_int_roundtrip():

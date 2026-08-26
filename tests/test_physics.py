@@ -325,7 +325,7 @@ def test_query_finds_overlapping_entities_by_layer():
     pickup = RigidBody2D(Vec2(20, 0), Vec2(8, 8), layer=Layer.PICKUP)
     area = pygame.Rect(15, 0, 30, 8)
 
-    found = query(enemies + [pickup], area, mask=Layer.ENEMY)
+    found = query([*enemies, pickup], area, mask=Layer.ENEMY)
     assert set(id(e) for e in found) == {id(enemies[1]), id(enemies[2])}
 
 

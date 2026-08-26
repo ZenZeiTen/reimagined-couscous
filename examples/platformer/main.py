@@ -22,7 +22,7 @@ import pygame
 # Allow running directly without installing the package.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import retroforge as rf  # noqa: E402
+import retroforge as rf
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
@@ -43,7 +43,8 @@ class PlatformerScene(rf.Scene):
         tileset = rf.asset_loader.load_tileset(os.path.join(ASSETS, "tiles.png"), 16, 16)
         self.layer = rf.TileLayer(self.tilemap, tileset, scroll_rate=1.0)
 
-        sheet = rf.SpriteSheet(rf.asset_loader.load_image(os.path.join(ASSETS, "player.png")), 16, 24)
+        sheet = rf.SpriteSheet(
+            rf.asset_loader.load_image(os.path.join(ASSETS, "player.png")), 16, 24)
         sprite = rf.Sprite(sheet, rf.Vec2(48, 48))
         self.anim = rf.AnimatedSprite(sprite)
         self.anim.add("idle", [0], 0.2)

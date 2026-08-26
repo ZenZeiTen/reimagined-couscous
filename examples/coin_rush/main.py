@@ -41,7 +41,7 @@ import pygame
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
-import retroforge as rf  # noqa: E402
+import retroforge as rf
 
 ASSETS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
 
@@ -119,7 +119,7 @@ class Walker(rf.Entity):
 
 
 class Player(rf.Entity):
-    def __init__(self, pos: rf.Vec2, sheet: rf.SpriteSheet, game: "Game") -> None:
+    def __init__(self, pos: rf.Vec2, sheet: rf.SpriteSheet, game: Game) -> None:
         anim = rf.AnimatedSprite(rf.Sprite(sheet))
         anim.add("idle", [0], 0.2)
         anim.add("run", [1, 2, 3, 2], 0.09)

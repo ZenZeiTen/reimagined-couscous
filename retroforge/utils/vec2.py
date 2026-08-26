@@ -10,7 +10,7 @@ frame, and keeps the hot path free of aliasing bugs.
 from __future__ import annotations
 
 import math
-from typing import Iterator
+from collections.abc import Iterator
 
 
 class Vec2:
@@ -24,32 +24,32 @@ class Vec2:
 
     # -- construction helpers -------------------------------------------------
     @classmethod
-    def zero(cls) -> "Vec2":
+    def zero(cls) -> Vec2:
         return cls(0.0, 0.0)
 
     @classmethod
-    def one(cls) -> "Vec2":
+    def one(cls) -> Vec2:
         return cls(1.0, 1.0)
 
-    def copy(self) -> "Vec2":
+    def copy(self) -> Vec2:
         return Vec2(self.x, self.y)
 
     # -- arithmetic (returns new instances) -----------------------------------
-    def __add__(self, other: "Vec2") -> "Vec2":
+    def __add__(self, other: Vec2) -> Vec2:
         return Vec2(self.x + other.x, self.y + other.y)
 
-    def __sub__(self, other: "Vec2") -> "Vec2":
+    def __sub__(self, other: Vec2) -> Vec2:
         return Vec2(self.x - other.x, self.y - other.y)
 
-    def __mul__(self, scalar: float) -> "Vec2":
+    def __mul__(self, scalar: float) -> Vec2:
         return Vec2(self.x * scalar, self.y * scalar)
 
     __rmul__ = __mul__
 
-    def __truediv__(self, scalar: float) -> "Vec2":
+    def __truediv__(self, scalar: float) -> Vec2:
         return Vec2(self.x / scalar, self.y / scalar)
 
-    def __neg__(self) -> "Vec2":
+    def __neg__(self) -> Vec2:
         return Vec2(-self.x, -self.y)
 
     def __eq__(self, other: object) -> bool:
@@ -58,7 +58,7 @@ class Vec2:
         return self.x == other.x and self.y == other.y
 
     # -- vector math ----------------------------------------------------------
-    def dot(self, other: "Vec2") -> float:
+    def dot(self, other: Vec2) -> float:
         return self.x * other.x + self.y * other.y
 
     def length_sq(self) -> float:
@@ -68,16 +68,16 @@ class Vec2:
     def length(self) -> float:
         return math.sqrt(self.length_sq())
 
-    def normalized(self) -> "Vec2":
+    def normalized(self) -> Vec2:
         ln = self.length()
         if ln == 0.0:
             return Vec2(0.0, 0.0)
         return Vec2(self.x / ln, self.y / ln)
 
-    def lerp(self, other: "Vec2", t: float) -> "Vec2":
+    def lerp(self, other: Vec2, t: float) -> Vec2:
         return Vec2(self.x + (other.x - self.x) * t, self.y + (other.y - self.y) * t)
 
-    def distance_to(self, other: "Vec2") -> float:
+    def distance_to(self, other: Vec2) -> float:
         return (other - self).length()
 
     # -- pixel helpers --------------------------------------------------------
@@ -93,7 +93,7 @@ class Vec2:
         """
         return (math.floor(self.x), math.floor(self.y))
 
-    def floor(self) -> "Vec2":
+    def floor(self) -> Vec2:
         return Vec2(math.floor(self.x), math.floor(self.y))
 
     # -- protocol -------------------------------------------------------------

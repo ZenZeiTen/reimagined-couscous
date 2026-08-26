@@ -158,7 +158,7 @@ class BitmapFont:
 
     # -- construction ---------------------------------------------------------
     @classmethod
-    def default(cls, **kwargs) -> "BitmapFont":
+    def default(cls, **kwargs) -> BitmapFont:
         """The built-in 5x7 ASCII font."""
         cached = getattr(cls, "_default_masks", None)
         if cached is None:
@@ -178,7 +178,7 @@ class BitmapFont:
         margin: int = 0,
         spacing: int = 0,
         **kwargs,
-    ) -> "BitmapFont":
+    ) -> BitmapFont:
         """Build a font from a glyph sheet laid out left-to-right, top-to-bottom.
 
         ``charset`` names the characters in sheet order. Any pixel matching the
@@ -262,7 +262,7 @@ class BitmapFont:
             cached = {}
             for ch, mask in self._masks.items():
                 surf = mask.copy()
-                surf.fill(key + (255,), special_flags=pygame.BLEND_RGBA_MULT)
+                surf.fill((*key, 255), special_flags=pygame.BLEND_RGBA_MULT)
                 # BLEND_RGBA_MULT scales alpha by 255/255 = unchanged, and RGB
                 # by the target colour, so holes stay holes.
                 cached[ch] = surf
