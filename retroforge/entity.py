@@ -77,7 +77,9 @@ class Entity:
 
     @pos.setter
     def pos(self, value: Vec2) -> None:
-        self.body.teleport(value)
+        # A plain move, keeping sub-pixel motion intact. Use ``body.teleport``
+        # for a respawn, which also drops the accumulator and swept history.
+        self.body.pos = value
 
     @property
     def vel(self) -> Vec2:
@@ -159,6 +161,9 @@ class World:
     def spawn(self, entity: Entity) -> Entity:
         """Add an entity. During an update it joins at the end of the frame."""
         entity.world = self
+        # Pooled entities are respawned after being killed; without this they
+        # arrive already flagged dead and are swept out again the same frame.
+        entity.alive = True
         if self._iterating:
             self._pending.append(entity)
         else:
@@ -237,6 +242,17 @@ class World:
                 entity.draw(surface, cx, cy, palette)
 
     # -- queries --------------------------------------------------------------
+    def rebuild_grid(self) -> None:
+        """Re-bucket every entity at its current position.
+
+        The broadphase is built once per ``update`` and tolerates about a cell
+        of movement after that (see ``SpatialHash.insert``), which covers normal
+        per-step motion. Call this after moving something a long way mid-step —
+        a teleport, a warp, a level-load reposition — so queries see it where it
+        actually is.
+        """
+        self.grid.rebuild(self.entities)
+
     def query(self, area, *, mask: int = Layer.ALL, exclude=None) -> list[Entity]:
         """Entities overlapping ``area`` whose layer is in ``mask``."""
         return self.grid.query(area, mask=mask, exclude=exclude)

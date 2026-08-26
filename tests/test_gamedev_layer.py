@@ -620,3 +620,122 @@ def test_flips_false_skips_the_mirrored_variants(tmp_path):
     assert len(with_flips) == 4 * len(without)
     assert (0 | FLIP_H_BIT) in with_flips
     assert (0 | FLIP_H_BIT) not in without
+
+
+# ---------------------------------------------------------------------------
+# Liveness in collision queries
+# ---------------------------------------------------------------------------
+
+def test_an_entity_killed_this_frame_is_not_returned_by_a_later_query():
+    """Two players must not both collect the same coin.
+
+    The broadphase is built once per frame, so an entity killed partway
+    through the step is still sitting in the buckets. Returning it lets the
+    second collector take a pickup the first one already took.
+    """
+    taken = []
+
+    class Collector(rf.Entity):
+        def __init__(self, name, pos):
+            super().__init__(pos, rf.Vec2(8, 8),
+                             layer=rf.Layer.PLAYER, mask=rf.Layer.PICKUP)
+            self.name = name
+
+        def update(self, dt, world):
+            for pickup in world.overlapping(self):
+                pickup.kill()
+                taken.append(self.name)
+
+    world = rf.World()
+    world.spawn(Collector("first", rf.Vec2(0, 0)))
+    world.spawn(Collector("second", rf.Vec2(2, 0)))
+    world.spawn(rf.Entity(rf.Vec2(1, 0), rf.Vec2(8, 8), layer=rf.Layer.PICKUP))
+
+    world.update(DT)     # builds the grid
+    world.update(DT)     # both collectors see it
+    assert taken == ["first"], f"pickup taken {len(taken)} times: {taken}"
+
+
+def test_a_deactivated_entity_drops_out_of_queries_immediately():
+    world = rf.World()
+    hunter = world.spawn(Ticker(rf.Vec2(0, 0), layer=rf.Layer.PLAYER,
+                                mask=rf.Layer.ENEMY))
+    target = world.spawn(Ticker(rf.Vec2(2, 2), layer=rf.Layer.ENEMY))
+    world.update(DT)
+    assert world.overlapping(hunter) == [target]
+
+    target.body.active = False
+    assert world.overlapping(hunter) == []
+
+
+def test_sweep_first_ignores_a_target_killed_this_frame():
+    from retroforge.physics.collision import sweep_first
+    dead = rf.Entity(rf.Vec2(20, 0), rf.Vec2(8, 8), layer=rf.Layer.ENEMY)
+    alive = rf.Entity(rf.Vec2(60, 0), rf.Vec2(8, 8), layer=rf.Layer.ENEMY)
+    dead.kill()
+    hit, _ = sweep_first(pygame.Rect(0, 0, 4, 4), rf.Vec2(200, 0), [dead, alive])
+    assert hit is alive
+
+
+def test_a_pooled_entity_can_be_respawned_after_being_killed():
+    """Reusing entities instead of allocating is a standard pattern."""
+    world = rf.World()
+    bullet = rf.Entity(rf.Vec2(0, 0), rf.Vec2(4, 4))
+
+    world.spawn(bullet)
+    world.update(DT)
+    assert len(world) == 1
+
+    bullet.kill()
+    world.update(DT)
+    assert len(world) == 0
+
+    world.spawn(bullet)
+    world.update(DT)
+    assert len(world) == 1 and bullet.alive
+
+
+def test_the_broadphase_tolerates_a_step_of_movement_since_the_rebuild():
+    """Entities keep moving after the grid is built, mid-step.
+
+    A scene updates fifty entities in order and each one queries as it goes, so
+    by the time the last one asks, the first has already moved. Bucketing on an
+    inflated rect keeps normal per-step motion findable.
+    """
+    world = rf.World(cell=32)
+    watcher = world.spawn(Ticker(rf.Vec2(0, 0), layer=rf.Layer.PLAYER))
+    mover = world.spawn(Ticker(rf.Vec2(24, 0), layer=rf.Layer.ENEMY))
+    world.update(DT)
+
+    mover.pos = rf.Vec2(4, 0)              # a cell's worth of movement
+    found = world.query(watcher.rect, mask=rf.Layer.ENEMY, exclude=watcher)
+    assert mover in found, "broadphase missed an entity that moved this step"
+
+
+def test_rebuild_grid_catches_up_after_a_long_teleport():
+    """Past about a cell the grid needs telling; that is what rebuild_grid is for."""
+    world = rf.World(cell=32)
+    watcher = world.spawn(Ticker(rf.Vec2(0, 0), layer=rf.Layer.PLAYER))
+    mover = world.spawn(Ticker(rf.Vec2(400, 0), layer=rf.Layer.ENEMY))
+    world.update(DT)
+
+    mover.pos = rf.Vec2(4, 0)              # warped across the level
+    world.rebuild_grid()
+    found = world.query(watcher.rect, mask=rf.Layer.ENEMY, exclude=watcher)
+    assert mover in found
+
+
+def test_setting_pos_keeps_sub_pixel_motion():
+    """`pos =` is a move, not a respawn; `teleport` is the one that resets."""
+    world = rf.World()
+    e = world.spawn(Ticker(rf.Vec2(0, 0)))
+    e.vel = rf.Vec2(20.0, 0.0)             # 1/3 px per step, so a remainder exists
+    e.body.consume_motion(DT)
+    carried = e.body._remainder.x
+    assert carried > 0.0
+
+    e.pos = rf.Vec2(e.pos.x, e.pos.y)
+    assert e.body._remainder.x == carried, "a plain move wiped the accumulator"
+
+    e.body.teleport(rf.Vec2(0, 0))
+    assert e.body._remainder.x == 0.0, "teleport should reset it"

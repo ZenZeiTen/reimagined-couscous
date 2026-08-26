@@ -198,6 +198,16 @@ def to_rect(thing) -> pygame.Rect:
     return rect
 
 
+def _is_active(entity) -> bool:
+    """False once something has been killed or deactivated.
+
+    Entities carry both: ``alive`` is the world's membership flag and
+    ``active`` gates simulation, and either one being false should take the
+    entity out of collision immediately rather than at the end of the frame.
+    """
+    return bool(getattr(entity, "alive", True)) and bool(getattr(entity, "active", True))
+
+
 def aabb_overlap(a, b) -> bool:
     """True if two rect-likes overlap. Accepts bodies, sprites, or Rects."""
     return to_rect(a).colliderect(to_rect(b))
@@ -217,7 +227,7 @@ def query(entities: Iterable, area, *, mask: int = Layer.ALL,
     box = to_rect(area)
     out = []
     for ent in entities:
-        if ent is exclude or getattr(ent, "active", True) is False:
+        if ent is exclude or not _is_active(ent):
             continue
         if mask != Layer.ALL and not (mask & getattr(ent, "layer", Layer.ALL)):
             continue
@@ -269,7 +279,7 @@ def sweep_first(moving, delta: Vec2, candidates: Iterable, *,
     best = None
     best_t = math.inf
     for ent in candidates:
-        if ent is exclude or getattr(ent, "active", True) is False:
+        if ent is exclude or not _is_active(ent):
             continue
         if mask != Layer.ALL and not (mask & getattr(ent, "layer", Layer.ALL)):
             continue
@@ -295,14 +305,20 @@ class SpatialHash:
         self._buckets.clear()
 
     def insert(self, entity) -> None:
-        rect = to_rect(entity)
+        # Bucket by a rect grown one cell in every direction. Entities keep
+        # moving after the grid is built — a scene updates fifty of them in
+        # order, and each one queries mid-step — so an entity that has since
+        # left its cell would otherwise be invisible to the query that needs it.
+        # Extra candidates are harmless: every hit is confirmed by an exact
+        # rect test below.
+        rect = to_rect(entity).inflate(self.cell * 2, self.cell * 2)
         for key in self._keys(rect):
             self._buckets.setdefault(key, []).append(entity)
 
     def rebuild(self, entities: Iterable) -> None:
         self.clear()
         for ent in entities:
-            if getattr(ent, "active", True):
+            if _is_active(ent):
                 self.insert(ent)
 
     def _keys(self, rect: pygame.Rect):
@@ -320,6 +336,12 @@ class SpatialHash:
                 if id(ent) in seen or ent is exclude:
                     continue
                 seen.add(id(ent))
+                # Liveness is re-checked here, not just at insert: an entity
+                # killed earlier in this same step is still sitting in the
+                # buckets, and returning it lets a second player collect a coin
+                # the first one already took.
+                if not _is_active(ent):
+                    continue
                 if mask != Layer.ALL and not (mask & getattr(ent, "layer", Layer.ALL)):
                     continue
                 if box.colliderect(to_rect(ent)):
@@ -332,9 +354,11 @@ class SpatialHash:
         out = []
         for bucket in self._buckets.values():
             for i, a in enumerate(bucket):
+                if not _is_active(a):
+                    continue
                 for b in bucket[i + 1:]:
                     key = (id(a), id(b)) if id(a) < id(b) else (id(b), id(a))
-                    if key in found:
+                    if key in found or not _is_active(b):
                         continue
                     found.add(key)
                     if to_rect(a).colliderect(to_rect(b)):
