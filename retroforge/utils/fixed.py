@@ -2,12 +2,24 @@
 
 Real 16-bit consoles integrated motion in fixed-point, not floats: the top 16
 bits of a 32-bit value were the integer pixel, the bottom 16 the sub-pixel
-fraction. Using the same representation for physics keeps motion deterministic
-and free of float drift, which matters for pixel-perfect platforming and replay
-consistency.
+fraction.
 
-``Fixed`` wraps a plain Python ``int`` (the raw fixed-point value). It is used
-for scalar math only — bulk pixel work belongs in numpy, not here.
+This is **opt-in**, for game code that needs bit-exact reproducibility — replays,
+lockstep multiplayer, a speedrun verifier. The engine's own bodies integrate in
+floats with a sub-pixel accumulator, which is smooth and fast and reproducible
+enough for single-player; reach for ``Fixed`` when "reproducible enough" is not.
+
+Two deliberate departures from the hardware:
+
+* **No overflow.** The raw value is a Python ``int``, so a result outside the
+  32-bit Q16.16 range grows instead of wrapping. Silent wraparound is a
+  hardware quirk, not a feature worth reproducing; ``in_range`` reports whether
+  a value would still have fit.
+* **Symmetric rounding.** ``*`` and ``//`` truncate toward zero for both signs.
+  A bare arithmetic shift floors instead, so ``-a * b`` was not the mirror of
+  ``a * b`` — and a symmetric jump landed on the platform going right but
+  missed going left, which is precisely the class of bug fixed-point is adopted
+  to prevent.
 """
 
 from __future__ import annotations
@@ -15,6 +27,10 @@ from __future__ import annotations
 FRAC_BITS = 16
 ONE = 1 << FRAC_BITS
 HALF = ONE >> 1
+
+# The range a hardware 32-bit Q16.16 word could hold, for ``in_range``.
+MAX_RAW = (1 << 31) - 1
+MIN_RAW = -(1 << 31)
 
 
 class Fixed:
@@ -55,6 +71,10 @@ class Fixed:
     def round_int(self) -> int:
         return (self.raw + HALF) >> FRAC_BITS
 
+    def in_range(self) -> bool:
+        """True if this value would still fit a hardware 32-bit Q16.16 word."""
+        return MIN_RAW <= self.raw <= MAX_RAW
+
     # -- arithmetic -----------------------------------------------------------
     def __add__(self, other: "Fixed") -> "Fixed":
         return Fixed(self.raw + other.raw)
@@ -64,12 +84,24 @@ class Fixed:
 
     def __mul__(self, other: "Fixed") -> "Fixed":
         # Multiply the raw values then shift back down to remove the extra
-        # fractional scaling introduced by the product.
-        return Fixed((self.raw * other.raw) >> FRAC_BITS)
+        # fractional scaling introduced by the product. The shift is applied to
+        # the magnitude so both signs truncate toward zero: a plain `>>` floors,
+        # which would make -a*b differ from -(a*b) by one ulp.
+        product = self.raw * other.raw
+        if product < 0:
+            return Fixed(-((-product) >> FRAC_BITS))
+        return Fixed(product >> FRAC_BITS)
 
     def __floordiv__(self, other: "Fixed") -> "Fixed":
         # Shift the numerator up first so the quotient lands back in Q16.16.
-        return Fixed((self.raw << FRAC_BITS) // other.raw)
+        if other.raw == 0:
+            raise ZeroDivisionError("Fixed division by zero")
+        numerator = self.raw << FRAC_BITS
+        negative = (numerator < 0) != (other.raw < 0)
+        magnitude = abs(numerator) // abs(other.raw)
+        return Fixed(-magnitude if negative else magnitude)
+
+    __truediv__ = __floordiv__
 
     def __neg__(self) -> "Fixed":
         return Fixed(-self.raw)
