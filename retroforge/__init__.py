@@ -7,11 +7,17 @@ Import the public API directly from the top-level package::
 The engine targets the look and constraints of 1990s 16-bit consoles: a low-res
 virtual screen scaled with crisp nearest-neighbour pixels, sub-palette colour,
 four parallax background layers, hardware-style sprites, a Mode 7 affine plane,
-and an SNES-style controller model.
+and an SNES-style controller model — on top of the boring-but-essential parts a
+game actually ships with: text, entities, collision, timers, saves, and a debug
+overlay.
 """
 
 from .engine import GameEngine, PHYSICS_DT, PHYSICS_HZ
 from .scene import Scene, SceneManager
+from .transition import Transition
+from .entity import Entity, World
+from .debug import DebugOverlay
+from .save import SaveManager, save_dir
 from .renderer.renderer import Renderer, RES_GENESIS, RES_SNES, RES_TALL
 from .renderer.palette import ColorPalette
 from .renderer.layer import TileLayer
@@ -19,7 +25,7 @@ from .renderer.mode7 import Mode7
 from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
 from .graphics.font import BitmapFont
 from .graphics.camera import Camera2D
-from .graphics.tilemap import MapObject, TileData, TileMap
+from .graphics.tilemap import EMPTY_TILE, MapObject, TileData, TileMap
 from .physics.body import Layer, RigidBody2D
 from .physics.collision import (
     SpatialHash,
@@ -37,16 +43,38 @@ from .input.input import Button, InputManager
 from .audio.audio import AudioEngine
 from .utils.vec2 import Vec2
 from .utils.fixed import Fixed
+from .utils.timing import (
+    EASINGS,
+    Scheduler,
+    Timer,
+    Tween,
+    ease_in_cubic,
+    ease_in_out_cubic,
+    ease_in_out_quad,
+    ease_in_out_sine,
+    ease_in_quad,
+    ease_out_back,
+    ease_out_bounce,
+    ease_out_cubic,
+    ease_out_quad,
+    linear,
+)
 from .utils import asset_loader
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
+    # engine + scenes
     "GameEngine",
     "PHYSICS_DT",
     "PHYSICS_HZ",
     "Scene",
     "SceneManager",
+    "Transition",
+    # game objects
+    "Entity",
+    "World",
+    # rendering
     "Renderer",
     "RES_SNES",
     "RES_GENESIS",
@@ -59,9 +87,12 @@ __all__ = [
     "SpriteSheet",
     "BitmapFont",
     "Camera2D",
+    # level data
     "TileMap",
     "TileData",
     "MapObject",
+    "EMPTY_TILE",
+    # physics
     "RigidBody2D",
     "Layer",
     "move_and_slide",
@@ -74,9 +105,29 @@ __all__ = [
     "sweep_first",
     "resolve_overlaps",
     "SpatialHash",
+    # input + audio
     "Button",
     "InputManager",
     "AudioEngine",
+    # timing + easing
+    "Scheduler",
+    "Timer",
+    "Tween",
+    "EASINGS",
+    "linear",
+    "ease_in_quad",
+    "ease_out_quad",
+    "ease_in_out_quad",
+    "ease_in_cubic",
+    "ease_out_cubic",
+    "ease_in_out_cubic",
+    "ease_in_out_sine",
+    "ease_out_back",
+    "ease_out_bounce",
+    # tools
+    "DebugOverlay",
+    "SaveManager",
+    "save_dir",
     "Vec2",
     "Fixed",
     "asset_loader",

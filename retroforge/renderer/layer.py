@@ -52,6 +52,26 @@ class TileLayer:
         self._variants: dict[tuple[int, int], pygame.Surface] = {}
         self._palette_token: tuple[int, int] | None = None
 
+        #: Animated tiles: base tile id -> (frame ids, seconds per frame).
+        #: Water, waterfalls, lava, torches and coin blocks are all this.
+        self.animations: dict[int, tuple[list[int], float]] = {}
+        self._anim_time = 0.0
+        self._anim_frame: dict[int, int] = {}
+
+    def animate(self, tile_id: int, frames: list[int], frame_time: float = 0.15) -> None:
+        """Replace ``tile_id`` with a cycling sequence of tiles when drawn."""
+        if not frames:
+            raise ValueError("an animated tile needs at least one frame")
+        self.animations[tile_id] = (list(frames), max(1e-6, float(frame_time)))
+
+    def update(self, dt: float) -> None:
+        """Advance tile animations. Call once per fixed step."""
+        if not self.animations:
+            return
+        self._anim_time += dt
+        for tile_id, (frames, frame_time) in self.animations.items():
+            self._anim_frame[tile_id] = int(self._anim_time / frame_time) % len(frames)
+
     def _prepare(self, key: int, pal_id: int,
                  palette: ColorPalette | None) -> pygame.Surface | None:
         surf = self.tileset.get(key)
@@ -69,12 +89,17 @@ class TileLayer:
         return cached
 
     def render(self, surface: pygame.Surface, camera_x: float, camera_y: float,
-               palette: ColorPalette | None = None) -> None:
+               palette: ColorPalette | None = None,
+               only_priority: int | None = None) -> None:
         """Blit the visible portion of the layer onto ``surface``.
 
         ``camera_x/y`` are the world-space top-left of the view. The layer's own
         ``scroll_rate`` scales them to produce parallax. Pass ``palette`` (for an
         indexed tileset) to honour per-tile sub-palettes and palette effects.
+
+        ``only_priority`` draws just the tiles at that priority, which is how a
+        foreground layer goes *in front of* sprites: render priority 0 and 1
+        before the sprites and priority 2 after them.
         """
         if not self.visible:
             return
@@ -120,6 +145,12 @@ class TileLayer:
                 tile_id = int(tm.tiles[ty, tx])
                 if tile_id == EMPTY_TILE:
                     continue
+                if only_priority is not None and tm.priority[ty, tx] != only_priority:
+                    continue
+
+                anim = self.animations.get(tile_id)
+                if anim is not None:
+                    tile_id = anim[0][self._anim_frame.get(tile_id, 0)]
 
                 key = tile_id
                 if tm.flip_h[ty, tx]:

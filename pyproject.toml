@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "retroforge"
-version = "0.1.0"
+version = "0.2.0"
 description = "A 2D game engine for 16-bit-era (SNES/Genesis) retro games"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { file = "LICENSE" }
 authors = [{ name = "RetroForge" }]
 keywords = ["game-engine", "2d", "retro", "snes", "genesis", "pygame", "16-bit"]
 classifiers = [
@@ -35,6 +35,11 @@ Homepage = "https://github.com/zenzeiten/reimagined-couscous"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["retroforge*"]
+
+[tool.setuptools.package-data]
+# PEP 561: without this marker the fully-annotated API is invisible to
+# every type checker downstream.
+retroforge = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

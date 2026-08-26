@@ -17,19 +17,26 @@ import pygame
 
 from ..graphics.tilemap import TileMap
 
-_surface_cache: dict[str, pygame.Surface] = {}
-_sound_cache: dict[str, "pygame.mixer.Sound"] = {}
+_surface_cache: dict[tuple[str, bool], pygame.Surface] = {}
+_sound_cache: dict[str, "pygame.mixer.Sound | None"] = {}
 
 
 def load_image(path: str, *, keep_indexed: bool = False) -> pygame.Surface:
-    """Load a PNG/BMP. Cached by path.
+    """Load a PNG/BMP. Cached by path and by ``keep_indexed``.
 
     When ``keep_indexed`` is true and the source is 8-bit, the indexed surface is
     preserved for palette swapping; otherwise the surface is converted for fast
     blitting (with per-pixel alpha if present).
+
+    The cache key includes ``keep_indexed`` because the two calls return
+    genuinely different surfaces. Keying on the path alone means whichever call
+    happens first wins, so a converted RGB surface can come back from a
+    ``keep_indexed=True`` request and palette swapping silently stops working.
     """
-    if path in _surface_cache:
-        return _surface_cache[path]
+    key = (path, bool(keep_indexed))
+    cached = _surface_cache.get(key)
+    if cached is not None:
+        return cached
 
     surf = pygame.image.load(path)
     if keep_indexed and surf.get_bitsize() == 8:
@@ -37,7 +44,7 @@ def load_image(path: str, *, keep_indexed: bool = False) -> pygame.Surface:
         pass
     elif pygame.display.get_surface() is not None:
         surf = surf.convert_alpha() if surf.get_alpha() is not None else surf.convert()
-    _surface_cache[path] = surf
+    _surface_cache[key] = surf
     return surf
 
 
@@ -69,10 +76,20 @@ def load_tileset(
     return tiles
 
 
-def load_sound(path: str) -> "pygame.mixer.Sound":
+def load_sound(path: str) -> "pygame.mixer.Sound | None":
+    """Load a WAV/OGG, or return None when there is no audio device.
+
+    AudioEngine already degrades to a no-op headlessly so the same game code
+    runs in CI and on a desktop; loading has to keep that promise too, or the
+    game dies at the load rather than at the play. Every AudioEngine method
+    tolerates a None sound.
+    """
     if path in _sound_cache:
         return _sound_cache[path]
-    snd = pygame.mixer.Sound(path)
+    try:
+        snd = pygame.mixer.Sound(path)
+    except (pygame.error, FileNotFoundError):
+        snd = None
     _sound_cache[path] = snd
     return snd
 

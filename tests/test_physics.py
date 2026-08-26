@@ -11,7 +11,6 @@ from retroforge.physics.collision import (
     SpatialHash,
     depenetrate,
     move_and_slide,
-    move_and_slide as slide,
     query,
     resolve_overlaps,
     sweep_aabb,
