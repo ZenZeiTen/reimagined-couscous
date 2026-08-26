@@ -34,11 +34,9 @@ class Camera2D:
         tl = Vec2(self.pos.x - self.view_w / 2, self.pos.y - self.view_h / 2)
         tl = tl + self._shake_offset
         if self.bounds is not None:
-            max_x = self.bounds.right - self.view_w
-            max_y = self.bounds.bottom - self.view_h
             tl = Vec2(
-                _clamp(tl.x, self.bounds.left, max(self.bounds.left, max_x)),
-                _clamp(tl.y, self.bounds.top, max(self.bounds.top, max_y)),
+                _clamp_axis(tl.x, self.bounds.left, self.bounds.width, self.view_w),
+                _clamp_axis(tl.y, self.bounds.top, self.bounds.height, self.view_h),
             )
         return tl
 
@@ -78,3 +76,15 @@ class Camera2D:
 
 def _clamp(v: float, lo: float, hi: float) -> float:
     return lo if v < lo else hi if v > hi else v
+
+
+def _clamp_axis(value: float, origin: float, extent: float, view: float) -> float:
+    """Keep the view inside the level on one axis.
+
+    When the level is smaller than the view there is nothing to scroll, so the
+    level is centred rather than pinned to its top-left corner with all the
+    empty space on one side.
+    """
+    if extent <= view:
+        return origin - (view - extent) / 2.0
+    return _clamp(value, origin, origin + extent - view)

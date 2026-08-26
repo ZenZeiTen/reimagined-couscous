@@ -573,3 +573,50 @@ def test_animate_rejects_an_empty_frame_list():
     layer = rf.TileLayer(TileMap(1, 1), _tileset())
     with pytest.raises(ValueError):
         layer.animate(0, [])
+
+
+# ---------------------------------------------------------------------------
+# Tileset loading
+# ---------------------------------------------------------------------------
+
+def test_a_tileset_too_large_for_the_flip_bits_is_refused(tmp_path):
+    """Past 16384 tiles an id collides with FLIP_H_BIT.
+
+    A plain tile would silently come back mirrored, which is the kind of bug
+    that gets blamed on the level data for a week.
+    """
+    from retroforge.utils import asset_loader
+
+    # 16512 tiles of 8x8: 129 columns x 128 rows.
+    sheet = pygame.Surface((129 * 8, 128 * 8))
+    path = tmp_path / "huge.png"
+    pygame.image.save(sheet, str(path))
+    asset_loader.clear_cache()
+
+    with pytest.raises(ValueError, match="flip bits"):
+        asset_loader.load_tileset(str(path), 8, 8)
+
+    # The same sheet loads fine without pre-baked flips.
+    asset_loader.clear_cache()
+    tiles = asset_loader.load_tileset(str(path), 8, 8, flips=False)
+    assert len(tiles) == 129 * 128
+    asset_loader.clear_cache()
+
+
+def test_flips_false_skips_the_mirrored_variants(tmp_path):
+    from retroforge.utils import asset_loader
+    from retroforge.utils.asset_loader import FLIP_H_BIT
+
+    sheet = pygame.Surface((32, 16))
+    path = tmp_path / "small.png"
+    pygame.image.save(sheet, str(path))
+
+    asset_loader.clear_cache()
+    with_flips = asset_loader.load_tileset(str(path), 16, 16)
+    asset_loader.clear_cache()
+    without = asset_loader.load_tileset(str(path), 16, 16, flips=False)
+    asset_loader.clear_cache()
+
+    assert len(with_flips) == 4 * len(without)
+    assert (0 | FLIP_H_BIT) in with_flips
+    assert (0 | FLIP_H_BIT) not in without

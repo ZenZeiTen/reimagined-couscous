@@ -64,13 +64,18 @@ class SpriteSheet:
         self._slice_grid()
 
     def _slice_grid(self) -> None:
+        # Stop at the trailing margin, not at the sheet edge, so `columns`
+        # agrees with what was actually sliced. Otherwise a `divmod(idx,
+        # sheet.columns)` mapping silently addresses the wrong frame.
         w, h = self.surface.get_size()
+        limit_x = w - self.margin
+        limit_y = h - self.margin
         step_x = self.frame_w + self.spacing
         step_y = self.frame_h + self.spacing
         fy = self.margin
-        while fy + self.frame_h <= h:
+        while fy + self.frame_h <= limit_y:
             fx = self.margin
-            while fx + self.frame_w <= w:
+            while fx + self.frame_w <= limit_x:
                 rect = pygame.Rect(fx, fy, self.frame_w, self.frame_h)
                 self.frames.append(self.surface.subsurface(rect).copy())
                 fx += step_x
@@ -86,9 +91,20 @@ class SpriteSheet:
 
     @property
     def columns(self) -> int:
-        w = self.surface.get_width()
+        """Frames per row, matching exactly what ``_slice_grid`` carved."""
+        usable = self.surface.get_width() - 2 * self.margin
         step = self.frame_w + self.spacing
-        return max(0, (w - 2 * self.margin + self.spacing) // step) if step else 0
+        if step <= 0 or usable < self.frame_w:
+            return 0
+        return (usable + self.spacing) // step
+
+    @property
+    def rows(self) -> int:
+        usable = self.surface.get_height() - 2 * self.margin
+        step = self.frame_h + self.spacing
+        if step <= 0 or usable < self.frame_h:
+            return 0
+        return (usable + self.spacing) // step
 
     def prepare(
         self,
@@ -226,7 +242,10 @@ class AnimatedSprite:
             raise KeyError(
                 f"no animation named {name!r}; known: {sorted(self.animations)}"
             )
-        if name == self.current and not restart:
+        # A finished one-shot replays without needing restart=True: a game calls
+        # play("hit") on every hit, and silently ignoring the second one means
+        # the animation plays once for the rest of the session.
+        if name == self.current and not restart and not self._finished:
             return
         self.current = name
         self._timer = 0.0

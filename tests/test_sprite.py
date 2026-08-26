@@ -224,3 +224,47 @@ def test_alpha_does_not_corrupt_the_cached_variant():
 
     _pixel(faded, palette)
     assert _pixel(solid, palette) == RED
+
+
+def test_a_finished_one_shot_replays_without_restart():
+    """A game calls play("hit") on every hit and expects it to play.
+
+    The guard used to check only the animation name, so once a non-looping
+    animation had finished, replaying it was a silent no-op for the rest of
+    the session and the character never flinched again.
+    """
+    sheet = _indexed_sheet(frames=3)
+    anim = AnimatedSprite(Sprite(sheet, Vec2(0, 0)))
+    anim.add("hit", [0, 1, 2], frame_time=0.05, loop=False)
+    plays: list[str] = []
+    anim.on_complete = plays.append
+
+    for _ in range(3):
+        anim.play("hit")                 # no restart=True
+        assert anim.finished is False
+        for _ in range(30):
+            anim.update(1 / 60)
+    assert plays == ["hit", "hit", "hit"]
+
+
+def test_columns_and_rows_agree_with_what_was_sliced():
+    # A sheet whose trailing margin leaves room for a frame that is not one.
+    surf = pygame.Surface((33, 10))
+    sheet = SpriteSheet(surf, 8, 8, margin=1)
+    assert sheet.columns * sheet.rows == len(sheet)
+    for idx in range(len(sheet)):
+        row, col = divmod(idx, sheet.columns)
+        assert row < sheet.rows and col < sheet.columns
+
+
+@pytest.mark.parametrize("size,frame,margin,spacing", [
+    ((32, 8), 8, 0, 0),
+    ((33, 10), 8, 1, 0),
+    ((2 + 8 + 3 + 8 + 2, 12), 8, 2, 3),
+    ((64, 24), 16, 1, 0),
+    ((100, 100), 16, 0, 4),
+])
+def test_columns_times_rows_is_always_the_frame_count(size, frame, margin, spacing):
+    sheet = SpriteSheet(pygame.Surface(size), frame, frame,
+                        margin=margin, spacing=spacing)
+    assert sheet.columns * sheet.rows == len(sheet)

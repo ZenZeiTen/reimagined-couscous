@@ -399,3 +399,36 @@ def test_resolve_overlaps_only_reports_interacting_layers():
     assert tuple(sorted((id(player), id(enemy)))) in pairs
     assert tuple(sorted((id(enemy), id(other_enemy)))) not in pairs, \
         "enemies do not mask each other"
+
+
+# -- camera bounds ----------------------------------------------------------
+
+def test_a_level_smaller_than_the_view_is_centred_not_pinned():
+    """A small room should sit in the middle of the screen.
+
+    Clamping the view's top-left into an empty range collapsed it to the
+    level's corner, so a 160x120 room rendered hard against the top-left with
+    all the empty space on one side.
+    """
+    import retroforge as rf
+    camera = rf.Camera2D(256, 224)
+    camera.bounds = pygame.Rect(0, 0, 160, 120)
+    camera.snap_to(Vec2(80, 60))
+    tl = camera.top_left
+    assert tl.x == pytest.approx(-(256 - 160) / 2)
+    assert tl.y == pytest.approx(-(224 - 120) / 2)
+
+
+def test_a_level_larger_than_the_view_still_clamps_to_its_edges():
+    import retroforge as rf
+    camera = rf.Camera2D(100, 100)
+    camera.bounds = pygame.Rect(0, 0, 400, 400)
+
+    camera.snap_to(Vec2(0, 0))
+    assert camera.top_left == Vec2(0, 0), "should not show past the left edge"
+
+    camera.snap_to(Vec2(1000, 1000))
+    assert camera.top_left == Vec2(300, 300), "should not show past the right edge"
+
+    camera.snap_to(Vec2(200, 200))
+    assert camera.top_left == Vec2(150, 150), "should centre in open space"

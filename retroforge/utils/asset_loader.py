@@ -49,18 +49,30 @@ def load_image(path: str, *, keep_indexed: bool = False) -> pygame.Surface:
 
 
 def load_tileset(
-    path: str, tile_w: int, tile_h: int, *, keep_indexed: bool = False
+    path: str, tile_w: int, tile_h: int, *, keep_indexed: bool = False,
+    flips: bool = True,
 ) -> dict[int, pygame.Surface]:
     """Slice a tilesheet PNG into a ``{tile_id: Surface}`` dict.
 
     Tiles are numbered left-to-right, top-to-bottom starting at 0. Flipped
     variants are pre-generated and stored under ``tile_id | FLIP_H_BIT`` and/or
-    ``FLIP_V_BIT`` so the render loop never has to call ``transform.flip``.
+    ``FLIP_V_BIT`` so the render loop never has to call ``transform.flip``. That
+    costs four surfaces per tile; pass ``flips=False`` for a sheet whose tiles
+    are never mirrored, and the dict is a quarter of the size.
     """
     sheet = load_image(path, keep_indexed=keep_indexed)
     sheet_w, sheet_h = sheet.get_size()
     cols = sheet_w // tile_w
     rows = sheet_h // tile_h
+    count = cols * rows
+
+    if flips and count > FLIP_H_BIT:
+        # Beyond this the id would collide with the flip bits and a plain tile
+        # would silently come back mirrored, so refuse rather than corrupt.
+        raise ValueError(
+            f"{path} has {count} tiles, more than the {FLIP_H_BIT} that fit "
+            f"below the flip bits. Pass flips=False, or split the sheet."
+        )
 
     tiles: dict[int, pygame.Surface] = {}
     tid = 0
@@ -69,9 +81,11 @@ def load_tileset(
             rect = pygame.Rect(tx * tile_w, ty * tile_h, tile_w, tile_h)
             base = sheet.subsurface(rect).copy()
             tiles[tid] = base
-            tiles[tid | FLIP_H_BIT] = pygame.transform.flip(base, True, False)
-            tiles[tid | FLIP_V_BIT] = pygame.transform.flip(base, False, True)
-            tiles[tid | FLIP_H_BIT | FLIP_V_BIT] = pygame.transform.flip(base, True, True)
+            if flips:
+                tiles[tid | FLIP_H_BIT] = pygame.transform.flip(base, True, False)
+                tiles[tid | FLIP_V_BIT] = pygame.transform.flip(base, False, True)
+                tiles[tid | FLIP_H_BIT | FLIP_V_BIT] = pygame.transform.flip(
+                    base, True, True)
             tid += 1
     return tiles
 
