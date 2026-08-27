@@ -1,0 +1,79 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retroforge"
+version = "0.2.0"
+description = "A 2D game engine for 16-bit-era (SNES/Genesis) retro games"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "RetroForge" }]
+keywords = ["game-engine", "2d", "retro", "snes", "genesis", "pygame", "16-bit"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Games/Entertainment",
+    "Topic :: Software Development :: Libraries :: pygame",
+]
+dependencies = [
+    "pygame-ce>=2.4.0",
+    "numpy>=1.26.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff==0.15.8"]
+
+[project.scripts]
+retroforge = "retroforge.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/zenzeiten/reimagined-couscous"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["retroforge*"]
+
+[tool.setuptools.package-data]
+# PEP 561: without this marker the fully-annotated API is invisible to
+# every type checker downstream.
+retroforge = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+# Pinned explicitly so a lint run means the same thing locally and in CI.
+# Ruff's implicit defaults differ between versions and environments, which is
+# how a branch passes on a laptop and fails on a runner.
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # import sorting
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "RUF",  # ruff-specific
+]
+ignore = [
+    # Examples and tools set SDL env vars before importing pygame, which has to
+    # happen before the import to take effect.
+    "E402",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests reach into private state deliberately to drive the exact conditions a
+# bug needed, and assert on wide tuples.
+"tests/*" = ["E501"]
+# __all__ is grouped by subsystem with headings, which tells a reader far more
+# about the API's shape than alphabetical order would.
+"retroforge/__init__.py" = ["RUF022"]

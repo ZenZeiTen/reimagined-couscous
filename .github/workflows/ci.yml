@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Test
+        # The suite forces SDL's dummy drivers in conftest, so no display or
+        # audio device is needed on the runner.
+        run: pytest -q
+
+      - name: Generate example assets
+        run: |
+          python examples/generate_assets.py
+          python examples/mode7_racer/generate_assets.py
+          python examples/coin_rush/generate_assets.py
+
+      - name: Smoke-run every example headless
+        # Catches breakage that unit tests miss: the full engine loop driving a
+        # real scene through renderer, physics, input and audio.
+        run: python -m tools.smoke_examples 120
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      # Pinned, and the rule set is declared in pyproject, so a lint run means
+      # the same thing here as on a contributor's machine.
+      - run: pip install ruff==0.15.8
+      - run: ruff check retroforge examples tools tests

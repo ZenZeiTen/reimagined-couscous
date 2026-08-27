@@ -1,0 +1,131 @@
+"""GameEngine — the fixed-timestep main loop that ties everything together.
+
+The loop separates simulation from rendering. Physics and game logic advance in
+fixed 60 Hz steps drained from a time accumulator, while rendering happens once
+per frame at whatever rate the display allows. This keeps collision and movement
+deterministic regardless of frame rate, and the per-frame delta is capped so a
+single slow frame can't trigger a "spiral of death" of compounding catch-up
+steps.
+
+The engine owns the renderer, scene stack, input, and audio, and exposes them to
+scenes via ``scene.on_enter(engine)``.
+"""
+
+from __future__ import annotations
+
+import pygame
+
+from .audio.audio import AudioEngine
+from .input.input import InputManager
+from .renderer.renderer import Renderer
+from .scene import Scene, SceneManager
+
+PHYSICS_HZ = 60
+PHYSICS_DT = 1.0 / PHYSICS_HZ
+MAX_FRAME_TIME = 0.05  # cap to avoid the spiral of death (max 3 steps/frame)
+
+
+class GameEngine:
+    def __init__(
+        self,
+        renderer: Renderer | None = None,
+        *,
+        fps_limit: int = 60,
+        scene_manager: SceneManager | None = None,
+        input_manager: InputManager | None = None,
+        audio_engine: AudioEngine | None = None,
+        init_audio: bool = True,
+    ) -> None:
+        if not pygame.get_init():
+            pygame.init()
+
+        self.renderer = renderer if renderer is not None else Renderer()
+        self.scenes = scene_manager if scene_manager is not None else SceneManager()
+        self.audio = audio_engine if audio_engine is not None else (
+            AudioEngine() if init_audio else None
+        )
+        # Input depends on the joystick subsystem being initialised.
+        if not pygame.joystick.get_init():
+            pygame.joystick.init()
+        self.input = input_manager if input_manager is not None else InputManager()
+
+        self.scenes.bind(self)
+        self._running = False
+        self._accumulator = 0.0
+        self.fps_limit = fps_limit
+        self.clock = pygame.time.Clock()
+        self.dt = 0.0  # last frame's wall-clock delta (for non-fixed effects)
+
+    # -- lifecycle ------------------------------------------------------------
+    def run(self, initial_scene: Scene) -> None:
+        """Push ``initial_scene`` and enter the main loop until quit."""
+        self.scenes.push(initial_scene)
+        self._running = True
+        prev = pygame.time.get_ticks() / 1000.0
+
+        while self._running:
+            now = pygame.time.get_ticks() / 1000.0
+            frame_time = min(now - prev, MAX_FRAME_TIME)
+            prev = now
+            self.dt = frame_time
+            self._accumulator += frame_time
+
+            self._pump_events()
+            if not self._running:
+                break
+
+            # Drain fixed physics steps. begin_step hands each step the input
+            # edges latched since the previous one, so a press is never missed
+            # on a frame that runs no step nor repeated on one that runs several.
+            while self._accumulator >= PHYSICS_DT:
+                self.input.begin_step()
+                self.scenes.update(PHYSICS_DT, self.input)
+                self._accumulator -= PHYSICS_DT
+                # A scene that called quit() (or popped the last scene) must not
+                # get another step simulated after it asked to stop.
+                if not self._running or self.scenes.is_empty:
+                    self._running = False
+                    break
+
+            # Render once.
+            self.renderer.begin_frame()
+            self.scenes.draw(self.renderer)
+            self.renderer.end_frame()
+            self.clock.tick(self.fps_limit)
+
+        # Unwind the stack so every scene's on_exit runs — that is where games
+        # flush saves and release resources.
+        self.scenes.clear()
+
+    def step(self, frames: int = 1, scene: Scene | None = None) -> None:
+        """Run ``frames`` update+draw iterations, one fixed step each.
+
+        Unlike ``run`` this does not block on a real clock — handy for headless
+        smoke testing of the whole pipeline. Pass ``scene`` to push it first.
+        """
+        if scene is not None:
+            self.scenes.push(scene)
+        for _ in range(frames):
+            self._pump_events()
+            self.input.begin_step()
+            self.scenes.update(PHYSICS_DT, self.input)
+            self.renderer.begin_frame()
+            self.scenes.draw(self.renderer)
+            self.renderer.end_frame()
+            if self.scenes.is_empty:
+                break
+
+    def quit(self) -> None:
+        self._running = False
+
+    # -- internals ------------------------------------------------------------
+    def _pump_events(self) -> None:
+        events = pygame.event.get()
+        for e in events:
+            if e.type == pygame.QUIT:
+                self._running = False
+            elif e.type == pygame.VIDEORESIZE:
+                self.renderer.handle_resize(e.size)
+        # Focus loss is handled inside update(), which sees the same batch and
+        # can order it against the events that arrived alongside it.
+        self.input.update(events)
