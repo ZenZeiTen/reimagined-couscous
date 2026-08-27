@@ -257,3 +257,30 @@ def test_leaving_the_ladder_restores_gravity():
     for _ in range(60):
         world.move(climber, DT)
     assert climber.body.bottom == pytest.approx(FLOOR, abs=0.5)
+
+
+# -- the shipped demo -------------------------------------------------------
+
+def test_the_platformer_level_carries_slopes_and_ladders():
+    """The demo level exercises the Tiled property import path for both."""
+    import os
+
+    from retroforge.utils import asset_loader
+
+    level = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                         "examples", "platformer", "assets", "level1.json")
+    if not os.path.exists(level):
+        pytest.skip("example assets not generated")
+
+    tm = asset_loader.load_tilemap(level)
+    assert tm._has_slopes is True, "no slope tiles were imported"
+    assert tm.slope.any(), "slope plane is empty"
+    assert tm.ladder.any(), "ladder plane is empty"
+    # The ramp must join the ground below it to the ledge beside it.
+    rows, cols = tm.slope.nonzero()
+    assert len(cols) >= 2, "expected an up ramp and a down ramp"
+    # Each ramp's surface must span a whole tile, joining the floor to the ledge.
+    for ty, tx in zip(rows, cols, strict=True):
+        top = tm.slope_surface_y(int(tx) * tm.tile_w, int(ty))
+        bottom = tm.slope_surface_y((int(tx) + 1) * tm.tile_w - 1, int(ty))
+        assert abs(top - bottom) == tm.tile_h

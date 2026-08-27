@@ -25,6 +25,9 @@ RetroForge is designed for three things at once:
 | **Text** | Built-in 5×7 ASCII bitmap font (no binary asset), plus alignment, shadowing, word wrap, and your own glyph sheets |
 | **Entities** | `World` owns your game objects: deferred spawn/despawn, stable update order, priority draw order, tag and type lookup |
 | **Physics** | AABB bodies with sub-pixel accumulation, X-then-Y tile collision, depenetration, one-way platforms, swept AABB for fast projectiles, layer/mask filtering, and a grid broadphase |
+| **Platforming** | Slopes you walk up and down, moving platforms that carry riders, and ladders — the 16-bit vocabulary, not just flat boxes |
+| **Particles** | Fixed-capacity NumPy-backed pool with bursts and directional sprays, drawn in one batched call and allocating nothing per frame |
+| **Behaviour** | Named state machines with enter/update/exit hooks, guarded transitions, and `time_in_state` |
 | **Levels** | Tiled JSON import: CSV *and* base64/zlib/gzip, correct `firstgid`, object layers for spawn points, infinite maps, group layers |
 | **Camera** | Smooth follow, level-bound clamping, trauma-based shake |
 | **Input** | SNES-style 12-button model, keyboard + gamepad, remappable, with edges latched so a press is never dropped or doubled regardless of refresh rate |
@@ -149,7 +152,7 @@ python examples/mode7_racer/generate_assets.py
 python examples/coin_rush/generate_assets.py
 
 python examples/coin_rush/main.py      # ← a complete little game
-python examples/platformer/main.py     # minimal side-scroller
+python examples/platformer/main.py     # slopes, ladders, moving platforms, dust
 python examples/topdown/main.py        # top-down RPG-style room
 python examples/mode7_racer/main.py    # F-Zero-style Mode 7 racer
 ```
@@ -163,9 +166,15 @@ time and a jump buffer, one-way platforms you jump up through and drop down
 from, stomping, invulnerability flicker, parallax clouds, a bitmap-font HUD,
 iris and fade transitions, atomic saves, and an F1 debug overlay.
 
-Controls: arrow keys / WASD to move, **Z** to jump or boost, **Down+Z** to drop
-through a platform, **Enter** to pause, **F1** for the debug overlay, **Esc** to
-quit.
+**Platformer** is the one to read for the platforming vocabulary: a ramp you
+walk up and down without catching on its lip, a ladder you climb through a gap
+in a ledge, a metal platform that ferries you over a pit, and dust kicked up by
+running and landing. Its slopes and ladders come in through Tiled tile
+properties, so the same level would load out of the real editor.
+
+Controls: arrow keys / WASD to move (up/down to climb), **Z** to jump or boost,
+**Down+Z** to drop through a platform, **Enter** to pause, **F1** for the debug
+overlay, **Esc** to quit.
 
 ## Project layout
 
