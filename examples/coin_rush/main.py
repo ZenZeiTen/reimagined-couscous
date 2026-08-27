@@ -258,16 +258,32 @@ class Game(rf.Scene):
         coin_sheet = rf.SpriteSheet(
             rf.asset_loader.load_image(os.path.join(ASSETS, "coin.png")), 8, 8)
 
-        start = self.tilemap.find_object(type="spawn")
-        self.player = self.world.spawn(
-            Player(rf.Vec2(start.x, start.y), player_sheet, self))
-        for obj in self.tilemap.find_objects(type="enemy"):
-            self.world.spawn(Walker(rf.Vec2(obj.x, obj.y), enemy_sheet,
-                                    float(obj.get("range", 48))))
-        for obj in self.tilemap.find_objects(type="coin"):
-            self.world.spawn(Coin(rf.Vec2(obj.x, obj.y), coin_sheet))
+        # A registry maps each Tiled object type to a factory once. Adding a
+        # new kind of thing to the level is then a change to the map, not to
+        # this file — which is what lets a level editor (or a tool) extend the
+        # game without touching Python.
+        registry = rf.EntityRegistry(on_unknown="raise")
 
-        self.total_coins = len(self.world.find("coin"))
+        @registry.spawns("spawn")
+        def make_player(obj, ctx):
+            return Player(rf.Vec2(obj.x, obj.y), ctx["player_sheet"], self)
+
+        @registry.spawns("enemy")
+        def make_enemy(obj, ctx):
+            return Walker(rf.Vec2(obj.x, obj.y), ctx["enemy_sheet"],
+                          float(obj.get("range", 48)))
+
+        @registry.spawns("coin")
+        def make_coin(obj, ctx):
+            return Coin(rf.Vec2(obj.x, obj.y), ctx["coin_sheet"])
+
+        spawned = registry.populate(self.world, context={
+            "player_sheet": player_sheet,
+            "enemy_sheet": enemy_sheet,
+            "coin_sheet": coin_sheet,
+        })
+        self.player = spawned.first("spawn")
+        self.total_coins = len(spawned.of("coin"))
 
         # --- camera, HUD, timers ---
         self.camera = rf.Camera2D(renderer.width, renderer.height)

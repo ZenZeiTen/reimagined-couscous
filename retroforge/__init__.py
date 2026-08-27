@@ -12,6 +12,15 @@ game actually ships with: text, entities, collision, timers, saves, and a debug
 overlay.
 """
 
+import os as _os
+
+# pygame greets stdout with a version banner on import. For a game that is
+# harmless noise; for anything emitting structured output it is corruption —
+# `retroforge info --json | jq` fails on it, and so would any tool driving the
+# engine. Suppress it before pygame loads. An explicitly set value wins, so
+# anyone who wants the banner can keep it.
+_os.environ.setdefault("PYGAME_HIDE_SUPPORT_PROMPT", "1")
+
 from .audio.audio import AudioEngine
 from .debug import DebugOverlay
 from .engine import PHYSICS_DT, PHYSICS_HZ, GameEngine
@@ -48,6 +57,7 @@ from .physics.collision import (
     sweep_aabb,
     sweep_first,
 )
+from .registry import EntityRegistry, SpawnResult, describe_map
 from .renderer.layer import TileLayer
 from .renderer.mode7 import Mode7
 from .renderer.palette import ColorPalette
@@ -90,6 +100,9 @@ __all__ = [
     "StateMachine",
     "ParticleSystem",
     "MovingPlatform",
+    "EntityRegistry",
+    "SpawnResult",
+    "describe_map",
     "World",
     # rendering
     "Renderer",

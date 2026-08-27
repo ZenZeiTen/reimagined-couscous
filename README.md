@@ -35,6 +35,9 @@ RetroForge is designed for three things at once:
 | **Scenes** | Stack-based manager with pause/resume hooks, overlays that can keep the world running, and fade/wipe/iris/mosaic transitions |
 | **Game feel** | Timers, repeating schedules, tweens, and ten easing curves |
 | **Tools** | Save slots with atomic writes and schema versions, settings and key-remap persistence, and a debug overlay for FPS, hitboxes and tile solidity |
+| **Level-driven** | `EntityRegistry` maps Tiled object types to entity factories, so adding content is a change to the map rather than to your code |
+| **Testable** | A headless `Harness` with scripted input, `run_until` predicates, pixel assertions and PNG capture — no monkeypatching required |
+| **CLI** | `retroforge run / new / check / info` — scaffold a game, validate a level, or read the engine's capabilities as JSON |
 | **Loop** | Fixed 60 Hz timestep decoupled from render rate, with spiral-of-death protection |
 
 ## Install
@@ -112,6 +115,25 @@ for spawn in tmap.find_objects(type="enemy"):
     world.spawn(Goblin(rf.Vec2(spawn.x, spawn.y)))
 ```
 
+**Content from the level, not from code.** A loop per object type means every
+new kind of thing needs new Python. Register a factory per Tiled type once and
+the map decides what exists — which is what lets a level editor, or a tool,
+extend the game without touching your source:
+
+```python
+registry = rf.EntityRegistry(on_unknown="raise")
+registry.register_class("enemy", Goblin)        # map properties become kwargs
+
+@registry.spawns("coin")
+def make_coin(obj, ctx):
+    return Coin(rf.Vec2(obj.x, obj.y), ctx["coin_sheet"])
+
+spawned = registry.populate(world, tmap, context={"coin_sheet": sheet})
+player = spawned.first("spawn")
+
+registry.validate(tmap)     # -> ['boss'] — object types nothing can spawn
+```
+
 **Fast projectiles.** A bullet moving 27 px per step will step straight over an
 8 px target, so sweep instead of testing overlap:
 
@@ -139,6 +161,46 @@ self.debug.watch("vel.y", lambda: round(self.player.vel.y, 1))
 ...
 self.debug.draw(renderer, world=self.world, tilemap=self.tmap, camera=self.camera)
 ```
+
+**Checking it still works.** A game is a loop over real input and real pixels,
+which makes it awkward to test. `Harness` runs one headlessly, feeds synthetic
+input through the real `InputManager`, and hands back the frame. It is
+deterministic — one fixed step per `step()`, no wall clock — so a run replays
+identically in CI:
+
+```python
+from retroforge.testing import Harness
+
+with Harness(Level()) as h:
+    h.run_until(lambda: h.scene.player.body.grounded, limit=120)
+    h.hold(rf.Button.RIGHT, steps=40)       # walk right
+    h.tap(rf.Button.A)                      # jump — exactly one press
+    assert h.scene.player.pos.y < resting_y
+    assert h.count_color((240, 90, 90)) > 0 # the player is on screen
+    h.capture("jump.png")                   # and you can go look at it
+```
+
+## Command line
+
+`pip install` gives you a `retroforge` command:
+
+```bash
+retroforge examples                  # what can I look at?
+retroforge run platformer            # run one (generates its assets if needed)
+retroforge new mygame                # scaffold a game — and tests for it
+retroforge check assets/level.json   # is this level sound?
+retroforge info                      # buttons, resolutions, easings, exports
+```
+
+`check` and `info` take `--json`, so a script or an agent can consume them:
+
+```bash
+$ retroforge check assets/level.json --json | jq '.object_types'
+{ "coin": 25, "enemy": 6, "spawn": 1 }
+```
+
+`retroforge new` writes a playable scene, a README, and a `test_game.py` that
+uses the harness above — so a new project starts out already checkable.
 
 ## Examples
 
@@ -180,6 +242,9 @@ overlay, **Esc** to quit.
 
 ```
 retroforge/
+├── cli.py               # the `retroforge` command
+├── testing.py           # headless Harness for verifying a game
+├── registry.py          # Tiled object types -> entity factories
 ├── engine.py            # fixed-timestep main loop
 ├── scene.py             # Scene + stack-based SceneManager
 ├── transition.py        # fade / wipe / iris / mosaic scene transitions
