@@ -202,6 +202,20 @@ $ retroforge check assets/level.json --json | jq '.object_types'
 `retroforge new` writes a playable scene, a README, and a `test_game.py` that
 uses the harness above — so a new project starts out already checkable.
 
+## Working with Claude
+
+The repo ships a skill at `.claude/skills/retroforge/`, so `/retroforge` in
+Claude Code loads the whole build workflow — scaffolding, the Entity/World model,
+authoring Tiled levels that spawn content through `EntityRegistry`, verifying with
+the headless `Harness`, and the engine's non-obvious constraints.
+
+```
+/retroforge a top-down dungeon crawler with torch-lit rooms
+```
+
+It fires on `/retroforge` or a clear mention of RetroForge or pygame. Browser
+games belong to other tools; this one builds desktop Python.
+
 ## Examples
 
 Four runnable demos live under `examples/`. All assets — sprites, tilesets and
