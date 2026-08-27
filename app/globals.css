@@ -1,0 +1,67 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia,
+    "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas,
+    "Liberation Mono", monospace;
+  --font-lora: var(--font-serif);
+  --font-active: var(--font-sans);
+
+  /* Light theme (default) */
+  --bg: #f8f7f4;
+  --surface: #ffffff;
+  --surface-2: #eef1f6;
+  --text: #1e2433;
+  --muted: #5b6472;
+  --primary: #3f51b5;
+  --primary-contrast: #ffffff;
+  --accent: #b7791f;
+  --border: #dcdfe6;
+}
+
+:root[data-theme="dark"] {
+  --bg: #12141c;
+  --surface: #1b1e2b;
+  --surface-2: #242838;
+  --text: #e6e8f0;
+  --muted: #9aa2b5;
+  --primary: #8c9eff;
+  --primary-contrast: #12141c;
+  --accent: #e0b458;
+  --border: #323749;
+}
+
+:root[data-theme="sepia"] {
+  --bg: #f3e8d3;
+  --surface: #faf3e3;
+  --surface-2: #ecdfc4;
+  --text: #4a3423;
+  --muted: #7d6a52;
+  --primary: #7a4f21;
+  --primary-contrast: #faf3e3;
+  --accent: #9c6615;
+  --border: #d8c6a4;
+}
+
+:root[data-font="sans"] {
+  --font-active: var(--font-sans);
+}
+:root[data-font="serif"] {
+  --font-active: var(--font-serif);
+}
+:root[data-font="mono"] {
+  --font-active: var(--font-mono);
+}
+
+html,
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-active);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
