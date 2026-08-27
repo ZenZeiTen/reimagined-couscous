@@ -58,6 +58,11 @@ class RigidBody2D:
         self.on_wall = False
         #: True while the body is dropping through a one-way platform.
         self.drop_through = False
+        #: True while climbing: gravity is suspended and the game drives vel.y.
+        self.on_ladder = False
+        #: The moving platform this body is standing on, if any. Set by the
+        #: world each step; the rider inherits the platform's motion.
+        self.carrier = None
         self.active = True
 
         self.layer = layer

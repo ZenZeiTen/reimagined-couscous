@@ -40,6 +40,27 @@ import numpy as np
 
 EMPTY_TILE = -1
 
+#: Slope shapes, as the surface height at the tile's left and right edges given
+#: as a fraction of tile height (0.0 = tile top, 1.0 = tile bottom). The set
+#: matches what 16-bit platformers actually used: two 45-degree ramps and the
+#: two halves of each gentle 22.5-degree ramp, which tile into a longer run.
+SLOPE_NONE = 0
+SLOPE_UP_RIGHT = 1        # "/"  floor climbs left-to-right
+SLOPE_UP_LEFT = 2         # "\"  floor falls left-to-right
+SLOPE_UP_RIGHT_LOW = 3    # gentle "/", lower half
+SLOPE_UP_RIGHT_HIGH = 4   # gentle "/", upper half
+SLOPE_UP_LEFT_HIGH = 5    # gentle "\", upper half
+SLOPE_UP_LEFT_LOW = 6     # gentle "\", lower half
+
+SLOPE_SHAPES: dict[int, tuple[float, float]] = {
+    SLOPE_UP_RIGHT: (1.0, 0.0),
+    SLOPE_UP_LEFT: (0.0, 1.0),
+    SLOPE_UP_RIGHT_LOW: (1.0, 0.5),
+    SLOPE_UP_RIGHT_HIGH: (0.5, 0.0),
+    SLOPE_UP_LEFT_HIGH: (0.0, 0.5),
+    SLOPE_UP_LEFT_LOW: (0.5, 1.0),
+}
+
 # Tiled stores horizontal/vertical/diagonal flip in the top 3 bits of the GID.
 _FLIP_H = 0x80000000
 _FLIP_V = 0x40000000
@@ -102,7 +123,14 @@ class TileMap:
         self.solid = np.zeros((height, width), dtype=bool)
         #: Jump-through platforms: block a falling body only from above.
         self.one_way = np.zeros((height, width), dtype=bool)
+        #: Slope shape code per tile, 0 for none. See ``SLOPE_SHAPES``.
+        self.slope = np.zeros((height, width), dtype=np.uint8)
+        #: Climbable tiles: gravity is suspended while a body is attached.
+        self.ladder = np.zeros((height, width), dtype=bool)
         self.priority = np.ones((height, width), dtype=np.uint8)
+        # Set once any slope is placed, so maps without slopes pay nothing for
+        # the extra lookup on the hot is_solid path.
+        self._has_slopes = False
         #: Which tileset each tile came from (0 when the map has only one).
         self.tileset_index = np.zeros((height, width), dtype=np.uint8)
         #: Treat the space outside the map as solid walls.
@@ -151,7 +179,40 @@ class TileMap:
             if ty >= self.height:
                 return self.oob_solid_below
             return self.oob_solid
+        # A slope tile is never a solid box — walking into one must not be
+        # blocked, or the body stops dead at the foot of the ramp. The slope
+        # pass in move_and_slide owns its surface instead.
+        if self._has_slopes and self.slope[ty, tx]:
+            return False
         return bool(self.solid[ty, tx])
+
+    def slope_surface_y(self, world_x: int, ty: int) -> int | None:
+        """World y of the slope surface at ``world_x`` in tile row ``ty``.
+
+        Returns None when that tile is not a slope. The surface is the top of
+        the solid part, so a body stands with its feet exactly on this y.
+        """
+        tx = world_x // self.tile_w
+        if not self.in_bounds(tx, ty):
+            return None
+        code = int(self.slope[ty, tx])
+        shape = SLOPE_SHAPES.get(code)
+        if shape is None:
+            return None
+        left_frac, right_frac = shape
+        local = world_x - tx * self.tile_w
+        t = local / max(1, self.tile_w - 1)
+        frac = left_frac + (right_frac - left_frac) * t
+        return ty * self.tile_h + round(frac * self.tile_h)
+
+    def is_ladder(self, tx: int, ty: int) -> bool:
+        if not self.in_bounds(tx, ty):
+            return False
+        return bool(self.ladder[ty, tx])
+
+    def ladder_at_pixel(self, px: int, py: int) -> bool:
+        """True if the pixel lies inside a climbable tile."""
+        return self.is_ladder(px // self.tile_w, py // self.tile_h)
 
     def set_tile(
         self,
@@ -164,6 +225,8 @@ class TileMap:
         flip_v: bool = False,
         solid: bool = False,
         one_way: bool = False,
+        slope: int = SLOPE_NONE,
+        ladder: bool = False,
         priority: int = 1,
     ) -> None:
         if not self.in_bounds(tx, ty):
@@ -174,7 +237,11 @@ class TileMap:
         self.flip_v[ty, tx] = flip_v
         self.solid[ty, tx] = solid
         self.one_way[ty, tx] = one_way
+        self.slope[ty, tx] = slope
+        self.ladder[ty, tx] = ladder
         self.priority[ty, tx] = priority
+        if slope:
+            self._has_slopes = True
 
     def fill_solid_from_tiles(self, solid_ids: set[int]) -> None:
         """Mark every tile whose id is in ``solid_ids`` as solid."""
@@ -185,6 +252,17 @@ class TileMap:
         """Mark every tile whose id is in ``one_way_ids`` as a jump-through."""
         mask = np.isin(self.tiles, list(one_way_ids))
         self.one_way |= mask
+
+    def fill_slope_from_tiles(self, slope_ids: dict[int, int]) -> None:
+        """Assign slope shapes by tile id: ``{tile_id: SLOPE_UP_RIGHT, ...}``."""
+        for tile_id, code in slope_ids.items():
+            if code:
+                self.slope[self.tiles == tile_id] = code
+                self._has_slopes = True
+
+    def fill_ladder_from_tiles(self, ladder_ids: set[int]) -> None:
+        """Mark every tile whose id is in ``ladder_ids`` as climbable."""
+        self.ladder |= np.isin(self.tiles, list(ladder_ids))
 
     # -- object queries -------------------------------------------------------
     def find_objects(self, *, name: str | None = None,
@@ -210,6 +288,8 @@ class TileMap:
         layer_name: str | None = None,
         solid_property: str = "solid",
         one_way_property: str = "one_way",
+        slope_property: str = "slope",
+        ladder_property: str = "ladder",
     ) -> TileMap:
         """Build a TileMap from parsed Tiled JSON map data.
 
@@ -284,6 +364,16 @@ class TileMap:
         one_way_ids = _solid_tile_ids(tmap.tilesets, one_way_property)
         if one_way_ids:
             tmap.one_way = np.isin(gid, list(one_way_ids))
+
+        ladder_ids = _solid_tile_ids(tmap.tilesets, ladder_property)
+        if ladder_ids:
+            tmap.ladder = np.isin(gid, list(ladder_ids))
+
+        # `slope` is a named shape rather than a flag, e.g. slope = "up_right".
+        slope_ids = _slope_tile_ids(tmap.tilesets, slope_property)
+        for slope_gid, code in slope_ids.items():
+            tmap.slope[gid == slope_gid] = code
+            tmap._has_slopes = True
 
         return tmap
 
@@ -429,6 +519,39 @@ def _read_properties(node: dict) -> dict[str, Any]:
     if not isinstance(props, list):
         return {}
     return {p["name"]: p.get("value") for p in props if "name" in p}
+
+
+#: Tiled writes the slope shape as a string, which is far more legible in the
+#: editor than a bare number.
+SLOPE_NAMES: dict[str, int] = {
+    "up_right": SLOPE_UP_RIGHT,
+    "up_left": SLOPE_UP_LEFT,
+    "up_right_low": SLOPE_UP_RIGHT_LOW,
+    "up_right_high": SLOPE_UP_RIGHT_HIGH,
+    "up_left_high": SLOPE_UP_LEFT_HIGH,
+    "up_left_low": SLOPE_UP_LEFT_LOW,
+}
+
+
+def _slope_tile_ids(tilesets: list[dict], slope_property: str) -> dict[int, int]:
+    """Global ID -> slope code, from a string (or numeric) tileset property."""
+    out: dict[int, int] = {}
+    for ts in tilesets:
+        firstgid = int(ts.get("firstgid", 1))
+        tiles = ts.get("tiles")
+        if isinstance(tiles, dict):
+            tiles = [{"id": int(k), **v} for k, v in tiles.items()]
+        for tile in tiles or []:
+            tile_id = tile.get("id")
+            if tile_id is None:
+                continue
+            raw = _read_properties(tile).get(slope_property)
+            if raw is None:
+                continue
+            code = SLOPE_NAMES.get(raw) if isinstance(raw, str) else int(raw)
+            if code:
+                out[firstgid + int(tile_id)] = code
+    return out
 
 
 def _solid_tile_ids(tilesets: list[dict], solid_property: str) -> set[int]:

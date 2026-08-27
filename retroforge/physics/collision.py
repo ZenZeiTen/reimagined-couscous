@@ -81,6 +81,69 @@ def _one_way_floor(left: int, right: int, new_bottom: int, old_bottom: int,
     return False
 
 
+def _slope_surface_under(body: RigidBody2D, tm: TileMap, feet_y: int) -> int | None:
+    """Highest slope surface anywhere under the body's footprint, or None.
+
+    A rigid box rests on the *highest* ground beneath it, not on the ground under
+    its centre. That distinction is what lets a body walk off a ramp onto the
+    flat above it: sampling the centre leaves the trailing half of the box still
+    below the neighbouring column's surface, so the next sideways step is
+    reported as walking into a wall and the body stops dead on the ramp.
+
+    Slopes are linear within a tile, so the extreme within each column is at one
+    of its two ends — a handful of samples, not one per pixel.
+    """
+    left = math.floor(body.pos.x)
+    right = left + int(body.size.x) - 1
+    tx0, tx1 = left // tm.tile_w, right // tm.tile_w
+    best: int | None = None
+    # The row the feet are in, and the one below it — the feet can sit exactly on
+    # a tile boundary, and a body walking downhill leaves its row before landing.
+    for ty in ((feet_y - 1) // tm.tile_h, feet_y // tm.tile_h):
+        for tx in range(tx0, tx1 + 1):
+            if not tm.in_bounds(tx, ty) or not tm.slope[ty, tx]:
+                continue
+            col_left = max(left, tx * tm.tile_w)
+            col_right = min(right, tx * tm.tile_w + tm.tile_w - 1)
+            for sx in (col_left, col_right):
+                surface = tm.slope_surface_y(sx, ty)
+                if surface is not None and (best is None or surface < best):
+                    best = surface
+    return best
+
+
+def _resolve_slope(body: RigidBody2D, tm: TileMap, moved_x: int,
+                   was_grounded: bool) -> None:
+    """Sit the body on the slope beneath it, walking up or down the ramp."""
+    if body.vel.y < 0.0:
+        return          # jumping: do not glue the body back to the ramp
+
+    h = int(body.size.y)
+    feet = math.floor(body.pos.y) + h
+    surface = _slope_surface_under(body, tm, feet)
+    if surface is None:
+        return
+
+    drop = surface - feet
+    if drop < 0:
+        # Surface is above the feet: walking uphill. Step up, but only by a
+        # believable amount, so a body cannot climb a ramp it approached from
+        # the side.
+        if -drop > tm.tile_h + 1:
+            return
+    elif drop > 0:
+        # Surface is below the feet: only follow it down if the body was already
+        # walking, and only as far as this step could plausibly have carried it.
+        # Otherwise a body falling past a ramp would snap onto it in mid-air.
+        if not was_grounded or drop > abs(moved_x) + 2:
+            return
+
+    body.pos = Vec2(body.pos.x, float(surface - h))
+    body.grounded = True
+    body.vel = Vec2(body.vel.x, 0.0)
+    body._remainder.y = 0.0
+
+
 def depenetrate(body: RigidBody2D, tilemap: TileMap, max_push: int = 64) -> bool:
     """Push ``body`` out of any solid tile it is overlapping.
 
@@ -116,11 +179,17 @@ def move_and_slide(body: RigidBody2D, dt: float, gravity: float,
     """
     body.prev_pos = body.pos.copy()
     old_bottom = math.floor(body.pos.y) + int(body.size.y)
+    was_grounded = body.grounded
 
     # A body inside geometry can't evaluate any move sensibly, so free it first.
     depenetrate(body, tilemap)
 
-    body.vel = Vec2(body.vel.x, body.vel.y + gravity * body.gravity_scale * dt)
+    if body.on_ladder:
+        # Climbing suspends gravity; the game drives vel.y directly.
+        body.vel = Vec2(body.vel.x, body.vel.y)
+    else:
+        body.vel = Vec2(body.vel.x,
+                        body.vel.y + gravity * body.gravity_scale * dt)
 
     dx, dy = body.consume_motion(dt)
 
@@ -151,6 +220,18 @@ def move_and_slide(body: RigidBody2D, dt: float, gravity: float,
         for _ in range(abs(dy)):
             ny = math.floor(body.pos.y) + step
             left = math.floor(body.pos.x)
+            # Test slopes on the way down too: a body falling 20px in one step
+            # would otherwise pass clean through a ramp before the slope pass
+            # below ever looks at it.
+            if step > 0 and tm._has_slopes:
+                surface = _slope_surface_under(body, tm, ny + h)
+                if surface is not None and ny + h > surface:
+                    body.pos = Vec2(body.pos.x, float(surface - h))
+                    body.grounded = True
+                    body.vel = Vec2(body.vel.x, 0.0)
+                    body._remainder.y = 0.0
+                    break
+
             hit_solid = _blocked(left, ny, left + w, ny + h, tm)
             hit_one_way = (
                 not hit_solid and step > 0 and not body.drop_through
@@ -165,6 +246,11 @@ def move_and_slide(body: RigidBody2D, dt: float, gravity: float,
                 body._remainder.y = 0.0
                 break
             body.pos = Vec2(body.pos.x, float(ny))
+
+    # Slopes own the Y axis over their own tiles, so settle onto one after both
+    # axes have moved — this is what walks a body up and down a ramp.
+    if tm._has_slopes and not body.on_ladder:
+        _resolve_slope(body, tm, dx, was_grounded)
 
     # Ground probe: at rest, per-frame gravity may be too small to move a whole
     # pixel, so the loop above never tests the floor. Probe one pixel below to

@@ -15,12 +15,26 @@ overlay.
 from .audio.audio import AudioEngine
 from .debug import DebugOverlay
 from .engine import PHYSICS_DT, PHYSICS_HZ, GameEngine
-from .entity import Entity, World
+from .entity import Entity, MovingPlatform, World
+from .fsm import StateMachine
 from .graphics.camera import Camera2D
 from .graphics.font import BitmapFont
 from .graphics.sprite import AnimatedSprite, Sprite, SpriteSheet
-from .graphics.tilemap import EMPTY_TILE, MapObject, TileData, TileMap
+from .graphics.tilemap import (
+    EMPTY_TILE,
+    SLOPE_NONE,
+    SLOPE_UP_LEFT,
+    SLOPE_UP_LEFT_HIGH,
+    SLOPE_UP_LEFT_LOW,
+    SLOPE_UP_RIGHT,
+    SLOPE_UP_RIGHT_HIGH,
+    SLOPE_UP_RIGHT_LOW,
+    MapObject,
+    TileData,
+    TileMap,
+)
 from .input.input import Button, InputManager
+from .particles import ParticleSystem
 from .physics.body import Layer, RigidBody2D
 from .physics.collision import (
     SpatialHash,
@@ -73,6 +87,9 @@ __all__ = [
     "Transition",
     # game objects
     "Entity",
+    "StateMachine",
+    "ParticleSystem",
+    "MovingPlatform",
     "World",
     # rendering
     "Renderer",
@@ -89,6 +106,13 @@ __all__ = [
     "Camera2D",
     # level data
     "TileMap",
+    "SLOPE_NONE",
+    "SLOPE_UP_RIGHT",
+    "SLOPE_UP_LEFT",
+    "SLOPE_UP_RIGHT_LOW",
+    "SLOPE_UP_RIGHT_HIGH",
+    "SLOPE_UP_LEFT_HIGH",
+    "SLOPE_UP_LEFT_LOW",
     "TileData",
     "MapObject",
     "EMPTY_TILE",

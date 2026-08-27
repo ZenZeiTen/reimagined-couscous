@@ -28,7 +28,8 @@ behind the pack and 2 in front. Within one priority they draw in spawn order.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Iterator
+import math
+from collections.abc import Callable, Iterable, Iterator, Sequence
 
 import pygame
 
@@ -139,6 +140,88 @@ class Entity:
         self.sprite.draw(surface, camera_x, camera_y, palette)
 
 
+class MovingPlatform(Entity):
+    """A kinematic ledge that carries whatever is standing on it.
+
+    It patrols a list of waypoints at a constant speed. Riders are landed on it
+    from above only — which is how 16-bit moving platforms behaved, and what lets
+    a player jump up through one — and inherit its motion, so a platform can
+    carry you sideways over a pit or lift you to a ledge.
+    """
+
+    def __init__(
+        self,
+        pos: Vec2,
+        size: Vec2,
+        waypoints: Sequence[Vec2] = (),
+        *,
+        speed: float = 40.0,
+        mode: str = "pingpong",
+        wait: float = 0.0,
+        **kwargs,
+    ) -> None:
+        kwargs.setdefault("gravity_scale", 0.0)
+        kwargs.setdefault("priority", 0)
+        super().__init__(pos, size, **kwargs)
+        #: The full route, starting at the spawn position.
+        self.waypoints: list[Vec2] = [pos.copy(), *(w.copy() for w in waypoints)]
+        self.speed = speed
+        self.mode = mode          # "pingpong" turns around, "cycle" loops
+        self.wait = wait          # pause on reaching each waypoint
+        #: Displacement applied by the most recent step; riders inherit it.
+        self.delta = Vec2()
+        self._target = 1 if len(self.waypoints) > 1 else 0
+        self._step = 1
+        self._waiting = 0.0
+        self.tags.add("platform")
+
+    def advance(self, dt: float) -> None:
+        """Move one step along the route, recording ``delta`` for riders."""
+        before = self.body.pos.copy()
+        if len(self.waypoints) > 1 and self.speed > 0.0:
+            if self._waiting > 0.0:
+                self._waiting = max(0.0, self._waiting - dt)
+            else:
+                self._advance_toward_target(dt)
+        self.delta = Vec2(self.body.pos.x - before.x, self.body.pos.y - before.y)
+        self.body.prev_pos = before
+
+    def _advance_toward_target(self, dt: float) -> None:
+        target = self.waypoints[self._target]
+        to_x = target.x - self.body.pos.x
+        to_y = target.y - self.body.pos.y
+        distance = math.hypot(to_x, to_y)
+        travel = self.speed * dt
+
+        if distance <= travel or distance == 0.0:
+            self.body.pos = target.copy()
+            self._waiting = self.wait
+            self._next_target()
+            return
+        self.body.pos = Vec2(self.body.pos.x + to_x / distance * travel,
+                             self.body.pos.y + to_y / distance * travel)
+
+    def _next_target(self) -> None:
+        if self.mode == "cycle":
+            self._target = (self._target + 1) % len(self.waypoints)
+            return
+        # Ping-pong: reverse at either end of the route.
+        nxt = self._target + self._step
+        if not 0 <= nxt < len(self.waypoints):
+            self._step = -self._step
+            nxt = self._target + self._step
+        self._target = nxt
+
+    def carries(self, other: Entity) -> bool:
+        """True if ``other`` is resting on this platform's top surface."""
+        rider, mine = other.body, self.body
+        if rider is mine:
+            return False
+        if rider.right <= mine.pos.x or rider.pos.x >= mine.right:
+            return False
+        return -1.0 <= rider.bottom - mine.pos.y <= 1.0
+
+
 class World:
     """Owns the entities, the level, and the order things happen in."""
 
@@ -195,6 +278,21 @@ class World:
     def update(self, dt: float) -> None:
         self.time += dt
 
+        # Kinematic platforms move first, so a rider that integrates this frame
+        # already sees the platform where it will be, not where it was.
+        platforms = [e for e in self.entities
+                     if isinstance(e, MovingPlatform) and e.active]
+        for platform in platforms:
+            platform.advance(dt)
+
+        # Carry riders along before they run their own physics.
+        if platforms:
+            for entity in self.entities:
+                carrier = entity.body.carrier
+                if carrier is not None and carrier.alive and carrier.active:
+                    entity.body.pos = Vec2(entity.body.pos.x + carrier.delta.x,
+                                           entity.body.pos.y + carrier.delta.y)
+
         self._iterating = True
         try:
             for entity in self.entities:
@@ -204,6 +302,13 @@ class World:
                         entity.anim.update(dt)
         finally:
             self._iterating = False
+
+        # Land anything that fell onto a platform, then record who rides what so
+        # the next frame can carry them.
+        if platforms:
+            for entity in self.entities:
+                if entity.active and not isinstance(entity, MovingPlatform):
+                    self._settle_on_platforms(entity, platforms)
 
         # Deferred membership changes, so spawning or killing mid-update is safe.
         if self._pending:
@@ -220,6 +325,52 @@ class World:
             self.entities = [e for e in self.entities if e.alive]
 
         self.grid.rebuild(self.entities)
+
+    def on_ladder(self, entity: Entity) -> bool:
+        """True if the entity's middle is inside a climbable tile."""
+        if self.tilemap is None:
+            return False
+        centre = entity.body.center
+        return self.tilemap.ladder_at_pixel(int(centre.x), int(centre.y))
+
+    def climb(self, entity: Entity, direction: int, speed: float = 60.0) -> bool:
+        """Attach to a ladder and move up (-1) or down (+1) it.
+
+        Returns False when there is no ladder to climb, so the caller can fall
+        back to ordinary walking. Detaching is just ``entity.body.on_ladder =
+        False`` — a jump, or stepping off the side.
+        """
+        body = entity.body
+        if not self.on_ladder(entity):
+            body.on_ladder = False
+            return False
+        body.on_ladder = True
+        body.vel = Vec2(body.vel.x, direction * speed)
+        return True
+
+    def _settle_on_platforms(self, entity: Entity,
+                             platforms: list[MovingPlatform]) -> None:
+        """Land ``entity`` on a platform it crossed, and note its carrier."""
+        body = entity.body
+        body.carrier = None
+        if body.vel.y < 0.0 or body.drop_through:
+            return          # rising, or deliberately dropping through
+
+        feet = body.bottom
+        prev_feet = body.prev_pos.y + body.size.y
+        for platform in platforms:
+            top = platform.body.pos.y
+            if body.right <= platform.body.pos.x or body.pos.x >= platform.body.right:
+                continue
+            # Compare against where the feet were, so a fast fall cannot pass
+            # straight through the ledge between two steps.
+            if prev_feet <= top + 1.0 <= feet + 1.0:
+                body.pos = Vec2(body.pos.x, top - body.size.y)
+                body.vel = Vec2(body.vel.x, 0.0)
+                body._remainder.y = 0.0
+                body.grounded = True
+                body.carrier = platform
+                return
 
     def move(self, entity: Entity, dt: float, *, gravity: float | None = None) -> None:
         """Integrate one entity against the tilemap."""
