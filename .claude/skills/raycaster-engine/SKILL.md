@@ -78,6 +78,12 @@ cp $K/renderer/{Color,Framebuffer,Texture,Camera,Raycaster,Shading,WallRenderer,
 Write `renderer/index.ts` to re-export just the files you kept; the bundled
 `index.ts` assumes the full set and will fail to resolve otherwise.
 
+**Take the tests with it.** `assets/engine-kernel/tests/` goes to the project
+root as `tests/` and gives you 29 vitest cases over the parts that fail
+silently — the fisheye lock, sprite occlusion, collision sliding, map parsing,
+fixed-step accumulation. Copied code without its tests is code you now own and
+cannot verify; drop the cases for any module you didn't copy.
+
 | Path | What it gives you |
 | --- | --- |
 | `core/Engine.ts` | Fixed-timestep loop with render interpolation, FPS/frame-time stats, pause on tab hide |

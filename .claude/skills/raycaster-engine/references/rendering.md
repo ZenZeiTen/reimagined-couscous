@@ -160,6 +160,14 @@ frame. Cache the texture registry into flat arrays indexed by id (rebuilt only
 when the registry version changes) rather than calling a lookup method per
 pixel; the kernel does this.
 
+It also paints pixels the wall pass will immediately overwrite, which is simple
+and correct but wastes fill rate — in a corridor most of the screen is wall. If
+you want that back, cast walls first and then clip each floor row to the columns
+the walls did not claim, using the `drawStart`/`drawEnd` arrays the wall renderer
+already fills. That inverts the pass order, so only do it once the picture is
+right; a half-finished version of this optimisation looks like torn geometry and
+is miserable to debug.
+
 ---
 
 ## 4. Billboard sprites
