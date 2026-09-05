@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Raycaster Engine Demo</title>
+    <style>
+      html, body { margin: 0; padding: 0; background: #000; height: 100%; overflow: hidden; font-family: "Courier New", monospace; }
+      #stage { position: relative; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+      canvas { image-rendering: pixelated; image-rendering: crisp-edges; position: absolute; left: 0; top: 0; }
+      #overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #e8e0c8; background: rgba(0,0,0,0.75); cursor: pointer; user-select: none; z-index: 10; }
+      #overlay h1 { font-size: 32px; letter-spacing: 4px; margin: 0 0 16px; text-shadow: 0 0 12px #c8a000; }
+      #overlay p { margin: 4px 0; font-size: 14px; opacity: 0.85; }
+      #overlay.hidden { display: none; }
+    </style>
+  </head>
+  <body>
+    <div id="stage">
+      <canvas id="view"></canvas>
+      <canvas id="hud"></canvas>
+      <div id="overlay">
+        <h1>RAYCASTER</h1>
+        <p>Click to start (locks the mouse and enables audio)</p>
+        <p>WASD / Arrows: move &nbsp; Mouse: look &nbsp; Left click / Space: fire &nbsp; Shift: run &nbsp; M: minimap &nbsp; Esc: release mouse</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

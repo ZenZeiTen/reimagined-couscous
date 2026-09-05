@@ -1,0 +1,22 @@
+{
+  "name": "raycaster-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Modular 3.5D raycasting game engine (TypeScript + HTML5 Canvas) with Blender sprite and ElevenLabs audio pipelines.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bake:audio": "node tools/audio/bake_sound_bank.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.2",
+    "vite": "^5.4.0",
+    "vitest": "^2.0.5"
+  }
+}

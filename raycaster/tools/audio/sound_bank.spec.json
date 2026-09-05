@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "defaultVoiceId": "JBFqnCBsd6RMkjVDRZzb",
+  "defaultModelId": "eleven_multilingual_v2",
+  "outputFormat": "mp3_44100_128",
+  "sounds": {
+    "pistol_fire": { "prompt": "Retro 8-bit video game pistol gunshot, punchy, short, lo-fi", "durationSeconds": 0.6, "promptInfluence": 0.6 },
+    "pistol_empty": { "prompt": "Dry click of an empty pistol trigger, retro game sound", "durationSeconds": 0.3, "promptInfluence": 0.5 },
+    "pistol_reload": { "prompt": "Retro video game pistol reload, magazine slide clicks", "durationSeconds": 0.9, "promptInfluence": 0.5 },
+    "enemy_alert": { "prompt": "Retro arcade monster alert growl, short, lo-fi 8-bit", "durationSeconds": 0.7, "promptInfluence": 0.4 },
+    "enemy_attack": { "prompt": "Retro arcade monster swipe attack, short whoosh with a growl", "durationSeconds": 0.6, "promptInfluence": 0.4 },
+    "enemy_hurt": { "prompt": "Retro arcade monster pain grunt, short, lo-fi", "durationSeconds": 0.5, "promptInfluence": 0.4 },
+    "enemy_die": { "prompt": "Retro arcade monster death scream fading out, 8-bit style", "durationSeconds": 1.2, "promptInfluence": 0.4 },
+    "player_hurt": { "prompt": "Retro video game player hurt grunt, muffled thud, lo-fi", "durationSeconds": 0.5, "promptInfluence": 0.5 },
+    "pickup_ammo": { "prompt": "Retro video game item pickup, metallic clink, short 8-bit", "durationSeconds": 0.5, "promptInfluence": 0.6 },
+    "pickup_health": { "prompt": "Retro video game health pickup, rising bright chime, 8-bit", "durationSeconds": 0.7, "promptInfluence": 0.6 },
+    "footstep": { "prompt": "Single soft footstep on concrete, retro game, very short", "durationSeconds": 0.25, "promptInfluence": 0.5 },
+    "level_start": { "prompt": "Retro video game level start jingle, short 8-bit fanfare", "durationSeconds": 1.5, "promptInfluence": 0.5 },
+    "player_die": { "prompt": "Retro video game player death, descending 8-bit tones, dramatic", "durationSeconds": 1.6, "promptInfluence": 0.5 }
+  },
+  "voices": {
+    "intro": { "text": "Welcome to the outpost. Clear every sector. Ammunition is scarce, make each shot count.", "style": "retro military radio operator" },
+    "enemy_taunt": { "text": "Intruder detected. Eliminate.", "style": "menacing robotic voice" },
+    "low_health": { "text": "Warning. Vital signs critical.", "style": "calm computer announcer" },
+    "low_ammo": { "text": "Ammunition low.", "style": "calm computer announcer" },
+    "all_clear": { "text": "Sector cleared. Outstanding work.", "style": "retro military radio operator" },
+    "player_dead": { "text": "Signal lost.", "style": "calm computer announcer" }
+  }
+}

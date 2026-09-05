@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.env
+.env.local
+public/audio/bank/*.mp3
+public/audio/bank/*.wav
