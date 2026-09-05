@@ -47,3 +47,30 @@ degrees **clockwise, seen from above**, from the model's forward axis (`-Y` in
 Blender by default; override with `--forward-axis`). The engine computes the
 same relative angle between a sprite's facing and the viewer, so a sprite
 facing away shows its back and a sprite facing left shows its left side.
+
+## Directional Sprite Baker add-on
+
+`directional_sprite_addon.py` is a lighter alternative for static props or
+quick previews. It rotates the **active object** in front of the scene's own
+camera and writes one transparent PNG per angle plus `metadata.json`:
+
+```json
+{ "modelName": "guard", "numAngles": 8, "resolution": 128,
+  "frames": [ { "index": 0, "angleDegrees": 0.0, "filename": "sprite_00_0deg.png" }, ... ] }
+```
+
+Use it three ways:
+
+- **Add-on**: Edit > Preferences > Add-ons > Install..., pick the file, then
+  open the "Sprite Baker" tab in the 3D viewport sidebar, set the output
+  folder, angle count and resolution, and press *Bake Directional Sprites*.
+- **Text Editor**: run the file, then call
+  `bake_directional_sprites("//../../public/assets/sprites/guard", num_angles=8, resolution=128)`.
+- **CLI**: `blender -b model.blend -P tools/blender/directional_sprite_addon.py -- --output public/assets/sprites/guard --angles 8 --resolution 128`
+
+The engine loads this format through `loadDirectionalSprite()` in
+`src/renderer/DirectionalSprites.ts`, which packs the PNGs into a sheet at
+runtime. The demo asset loader checks `assets/sprites/<name>/metadata.json`
+after `<name>.json`. Rotating the object counter-clockwise by θ is the same
+view as moving the camera clockwise by θ, so frame indices follow the same
+clockwise-from-front convention as `sprite_baker.py`.

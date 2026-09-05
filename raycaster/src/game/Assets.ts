@@ -2,12 +2,13 @@ import { TextureRegistry, Texture } from '../renderer/Texture';
 import { createDefaultTextures } from '../renderer/ProceduralTextures';
 import { SpriteSheet, SpriteSheetRegistry } from '../renderer/SpriteSheet';
 import { humanoidSheet, pillarSheet, pickupSheet } from '../renderer/ProceduralSprites';
+import { loadDirectionalSprite } from '../renderer/DirectionalSprites';
 
 export interface AssetBundle {
   textures: TextureRegistry;
   sprites: SpriteSheetRegistry;
   /** Which sprite sheets came from baked Blender assets vs. procedural fallbacks. */
-  spriteSources: Record<string, 'baked' | 'procedural'>;
+  spriteSources: Record<string, 'baked' | 'directional' | 'procedural'>;
 }
 
 export interface AssetOptions {
@@ -18,6 +19,15 @@ export interface AssetOptions {
   /** Sheet names to attempt loading from the Blender pipeline output. */
   bakedSheets?: string[];
   textureSize?: number;
+}
+
+async function isJson(url: string): Promise<boolean> {
+  try {
+    const head = await fetch(url, { method: 'HEAD' });
+    return head.ok && (head.headers.get('content-type') ?? '').includes('json');
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -48,7 +58,7 @@ export async function loadAssets(options: AssetOptions = {}): Promise<AssetBundl
   );
 
   const sprites = new SpriteSheetRegistry();
-  const spriteSources: Record<string, 'baked' | 'procedural'> = {};
+  const spriteSources: Record<string, 'baked' | 'directional' | 'procedural'> = {};
 
   const fallbacks: Record<string, () => SpriteSheet> = {
     grunt: () => humanoidSheet({ name: 'grunt', hue: 0.02, worldHeight: 0.9 }),
@@ -58,12 +68,19 @@ export async function loadAssets(options: AssetOptions = {}): Promise<AssetBundl
   await Promise.all(
     bakedSheets.map(async (name) => {
       try {
-        const head = await fetch(`${spriteBase}${name}.json`, { method: 'HEAD' });
-        const ct = head.headers.get('content-type') ?? '';
-        if (!head.ok || !ct.includes('json')) throw new Error('not baked');
-        const sheet = await SpriteSheet.load(`${spriteBase}${name}.json`);
-        sprites.register(sheet);
-        spriteSources[name] = 'baked';
+        // 1. Full sheet from sprite_baker.py (<name>.json + <name>.png).
+        if (await isJson(`${spriteBase}${name}.json`)) {
+          sprites.register(await SpriteSheet.load(`${spriteBase}${name}.json`));
+          spriteSources[name] = 'baked';
+          return;
+        }
+        // 2. Per-angle PNGs from directional_sprite_addon.py (<name>/metadata.json).
+        if (await isJson(`${spriteBase}${name}/metadata.json`)) {
+          sprites.register(await loadDirectionalSprite(`${spriteBase}${name}/metadata.json`, { name, worldHeight: 0.9 }));
+          spriteSources[name] = 'directional';
+          return;
+        }
+        throw new Error('no baked asset');
       } catch {
         const fb = fallbacks[name];
         if (fb) {

@@ -12,3 +12,5 @@ export type { Billboard } from './Sprite';
 export * from './Color';
 export * from './ProceduralTextures';
 export * from './ProceduralSprites';
+export { parseDirectionalMeta, packDirectionalFrames, loadDirectionalSprite } from './DirectionalSprites';
+export type { DirectionalSpriteMeta, DirectionalFrameMeta, PackOptions } from './DirectionalSprites';
