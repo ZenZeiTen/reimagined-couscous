@@ -19,8 +19,8 @@ import os
 import struct
 import sys
 
+import bpy  # noqa: E402  (bpy must load before bmesh/mathutils register)
 import bmesh
-import bpy
 from mathutils import Euler, Matrix, Vector
 
 HERE = os.path.dirname(os.path.abspath(bpy.data.filepath or __file__))

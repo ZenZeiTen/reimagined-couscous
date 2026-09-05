@@ -94,8 +94,15 @@ Models are packed as base64 int16 millimetre positions + uint16 indices, one par
   blender -b -P tools/blender/build_models.py -- --out models/models_v2.json --blend models/vareth_models.blend
   ```
 
-  Edit a part in Blender, keep its `socket` / `colour` properties, re-export, re-run `npm run models`. The loader
-  needs no changes; unknown colour keys fall back to stone.
+  Without a `blender` binary the same script runs through the `bpy` wheel: `pip install bpy`, then
+  `python3 tools/blender/build_models.py -- --out models/models_v2.json --blend models/vareth_models.blend`.
+  Edit a part in Blender, keep its `socket` / `colour` properties, re-export, then
+  `python3 tools/bake_models.py --merge-only` to regenerate `src/data/models.js` from the export. The loader needs
+  no changes; unknown colour keys fall back to stone.
+
+  The shipped `models/models_v2.json` and `models/vareth_models.blend` are the Blender 5.0.1 export. The Python
+  baker produces the same geometry within 15 mm (cylinder phase and cone caps differ) and is the fallback when
+  Blender is absent (`npm run models`).
 
 50 models, 162 parts, ~6.7k triangles in total.
 

@@ -6,7 +6,7 @@ const run = (label, cmd, args) => { const r = spawnSync(cmd, args, { cwd: ROOT, 
 const walk = d => fs.readdirSync(d).flatMap(f => { const p = path.join(d, f); return fs.statSync(p).isDirectory() ? walk(p) : p.endsWith('.js') ? [p] : []; });
 for (const f of walk(path.join(ROOT, 'src'))) { const r = spawnSync('node', ['--check', f], { stdio: 'pipe' }); if (r.status !== 0) { console.log('✘ syntax ' + f + '\n' + r.stderr); bad++; } }
 console.log('✔ syntax (' + walk(path.join(ROOT, 'src')).length + ' modules)');
-run('bake models', 'python3', ['tools/bake_models.py']);
+run('merge models', 'python3', ['tools/bake_models.py', '--merge-only']);
 run('playthrough', 'node', ['tools/playthrough.cjs']);
 run('screenshots + validators', 'node', ['tools/screenshot.cjs', process.argv[2] || path.join(ROOT, 'shots')]);
 process.exit(bad ? 1 : 0);
