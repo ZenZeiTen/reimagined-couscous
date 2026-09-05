@@ -52,10 +52,31 @@ pixel endianness, texture mirroring, sprite depth tests) are exactly where
 from-scratch attempts break, and debugging them later costs far more than the
 copy costs now.
 
+**Copy only what the game needs.** The kernel is a menu, not a bundle. A maze
+game with no enemies that ships `SpriteSheet.ts` and `DirectionalSprites.ts` has
+several hundred lines of dead weight the reader has to wade through, and it puts
+`fetch` and `new Image` in a build that loads nothing. Take the base, add a row
+when its feature is actually in the game, and delete anything you copied and did
+not wire up.
+
 ```bash
-cp -r <skill-dir>/assets/engine-kernel/* src/          # core, math, renderer, world
-cp -r <skill-dir>/assets/audio-kernel   src/audio      # optional, see references/audio.md
+K=<skill-dir>/assets/engine-kernel
+mkdir -p src/{math,renderer,world,core}
+cp $K/math/* src/math/                                       # always
+cp $K/world/{GameMap,MapParser,Tile,Collision,index}.ts src/world/   # always
+cp $K/core/* src/core/                                       # always (loop + input)
+cp $K/renderer/{Color,Framebuffer,Texture,Camera,Raycaster,Shading,WallRenderer,ProceduralTextures}.ts src/renderer/
 ```
+
+| Add when | Files |
+| --- | --- |
+| Floors/ceilings are textured rather than flat fills | `renderer/FloorCeilingRenderer.ts` |
+| Anything is drawn as a billboard (enemies, items, props) | `renderer/{SpriteRenderer,Sprite,SpriteSheet}.ts` |
+| Loading per-angle PNGs from `directional_sprite_addon.py` | `renderer/DirectionalSprites.ts` |
+| You want positional audio and procedural sound | `assets/audio-kernel` → `src/audio/` |
+
+Write `renderer/index.ts` to re-export just the files you kept; the bundled
+`index.ts` assumes the full set and will fail to resolve otherwise.
 
 | Path | What it gives you |
 | --- | --- |
