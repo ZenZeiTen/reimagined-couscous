@@ -36,6 +36,18 @@ export interface PlayOptions {
 
 export type BufferSource = 'bank' | 'cache' | 'api' | 'synth';
 
+/** Handle for a looping sound started with `playLoop`. */
+export interface LoopHandle {
+  readonly name: string;
+  /** Audio is actually flowing (buffer resolved and source started). */
+  readonly isPlaying: boolean;
+  /** True from creation until `stop()`; covers the async load so callers do not start duplicates. */
+  readonly isActive: boolean;
+  setVolume(volume: number, fadeSeconds?: number): void;
+  setPosition(x: number, y: number): void;
+  stop(fadeSeconds?: number): void;
+}
+
 interface ActiveVoice {
   source: AudioBufferSourceNode;
   gain: GainNode;
@@ -273,6 +285,94 @@ export class AudioManager {
         if (this.ctx && this.sfxBus) this.startVoice(b, this.sfxBus, options);
       })
       .catch((err) => console.warn(`[audio] cannot play '${name}'`, err));
+  }
+
+  /**
+   * Start a looping sound (ambient drones, machinery). The loop begins as
+   * soon as the buffer resolves; the handle controls volume, position and
+   * fading regardless of load state.
+   */
+  playLoop(name: string, options: PlayOptions = {}): LoopHandle {
+    let voice: ActiveVoice | null = null;
+    let stopped = false;
+    let volume = options.volume ?? 1;
+    let pending = { ...options, loop: true };
+    const applyVolume = (v: ActiveVoice, target: number, fade: number): void => {
+      const ctx = this.ctx!;
+      const param = v.gain.gain;
+      v.volume = target;
+      if (v.positional) {
+        this.updateVoiceMix(v);
+        return;
+      }
+      param.cancelScheduledValues(ctx.currentTime);
+      if (fade > 0) {
+        param.setValueAtTime(param.value, ctx.currentTime);
+        param.linearRampToValueAtTime(target, ctx.currentTime + fade);
+      } else {
+        param.value = target;
+      }
+    };
+    const handle: LoopHandle = {
+      name,
+      get isPlaying() {
+        return voice !== null && !stopped;
+      },
+      get isActive() {
+        return !stopped;
+      },
+      setVolume: (v, fade = 0) => {
+        volume = v;
+        pending = { ...pending, volume: v };
+        if (voice) applyVolume(voice, v, fade);
+      },
+      setPosition: (x, y) => {
+        pending = { ...pending, x, y };
+        if (voice) {
+          voice.x = x;
+          voice.y = y;
+          voice.positional = true;
+          this.updateVoiceMix(voice);
+        }
+      },
+      stop: (fade = 0) => {
+        stopped = true;
+        if (!voice || !this.ctx) return;
+        const v = voice;
+        if (fade > 0) {
+          applyVolume(v, 0, fade);
+          setTimeout(() => {
+            try {
+              v.source.stop();
+            } catch {
+              // already stopped
+            }
+          }, fade * 1000 + 50);
+        } else {
+          try {
+            v.source.stop();
+          } catch {
+            // already stopped
+          }
+        }
+        this.active.delete(v);
+      },
+    };
+    if (!this.ctx || !this.sfxBus) {
+      stopped = true;
+      return handle;
+    }
+    this.getBuffer(name)
+      .then((buf) => {
+        if (stopped || !this.ctx || !this.sfxBus) return;
+        voice = this.startVoice(buf, this.sfxBus, { ...pending, volume });
+        if (!voice) stopped = true;
+      })
+      .catch((err) => {
+        stopped = true;
+        console.warn(`[audio] cannot loop '${name}'`, err);
+      });
+    return handle;
   }
 
   /** Queue a voice line. Lines play one at a time; repeats are rate-limited. */

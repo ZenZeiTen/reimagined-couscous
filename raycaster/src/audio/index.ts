@@ -1,6 +1,7 @@
 export { ElevenLabsClient, ElevenLabsError, DEFAULT_TTS_MODEL, DEFAULT_OUTPUT_FORMAT } from './ElevenLabsClient';
 export type { ElevenLabsClientOptions, TextToSpeechRequest, SoundEffectRequest, VoiceSettings, VoiceSummary } from './ElevenLabsClient';
 export { AudioManager } from './AudioManager';
+export type { LoopHandle } from './AudioManager';
 export type { AudioManagerOptions, PlayOptions, BufferSource } from './AudioManager';
 export { MemoryAudioCache, CacheStorageAudioCache, createAudioCache, hashRequest, fnv1a } from './AudioCache';
 export type { AudioCacheStore } from './AudioCache';

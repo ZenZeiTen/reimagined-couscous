@@ -1,6 +1,6 @@
 import { Entity, type WorldContext } from './Entity';
 
-export type PickupKind = 'ammo' | 'health';
+export type PickupKind = 'mana' | 'health';
 
 export interface PickupHandler {
   /** Return true if the pickup was consumed. */
@@ -19,7 +19,7 @@ export class Pickup extends Entity {
     this.kind = kind;
     this.amount = amount;
     this.type = `pickup_${kind}`;
-    this.sheet = kind === 'ammo' ? 'pickup_ammo' : 'pickup_health';
+    this.sheet = kind === 'mana' ? 'pickup_mana' : 'pickup_health';
     this.handler = handler;
     this.solid = false;
     this.targetable = false;
@@ -35,7 +35,7 @@ export class Pickup extends Entity {
     const r = this.radius + p.radius;
     if (this.pos.distanceSqTo(p.pos) <= r * r) {
       if (this.handler.collect(this.kind, this.amount)) {
-        world.playSound(this.kind === 'ammo' ? 'pickup_ammo' : 'pickup_health', this.pos.x, this.pos.y);
+        world.playSound(this.kind === 'mana' ? 'pickup_mana' : 'pickup_health', this.pos.x, this.pos.y);
         this.removed = true;
       }
     }

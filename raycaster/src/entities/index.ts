@@ -1,7 +1,14 @@
 export { Entity, resetEntityIds } from './Entity';
 export type { WorldContext } from './Entity';
-export { Player, DEFAULT_PLAYER_CONFIG } from './Player';
-export type { PlayerConfig } from './Player';
+export { Player, DEFAULT_GRID_CONFIG, FACING_DX, FACING_DY, FACING_NAMES } from './Player';
+export type { GridPlayerConfig, Facing, PlayerAction, StepBlocker } from './Player';
+export { FreeRoamPlayer, DEFAULT_PLAYER_CONFIG } from './FreeRoamPlayer';
+export type { PlayerConfig } from './FreeRoamPlayer';
+export { Inventory, IRON_SWORD, FIRE_BOLT } from './Inventory';
+export type { ItemKind, ItemStack, Equipment } from './Inventory';
+export { Interactable, Chest, Door, Lever } from './Interactable';
+export type { Adventurer, InteractResult, ChestContents } from './Interactable';
+export { Projectile } from './Projectile';
 export { Enemy, GRUNT, BRUTE } from './Enemy';
 export type { EnemySpec, EnemyState } from './Enemy';
 export { Pickup, Decoration } from './Pickup';

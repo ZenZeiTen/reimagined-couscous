@@ -90,6 +90,13 @@ export const RETRO_RECIPES: Record<string, SynthRecipe> = {
       { wave: 'square', freq: 1320, duration: 0.12, gain: 0.35, at: 0.16, release: 0.08 },
     ],
   },
+  pickup_mana: {
+    segments: [
+      { wave: 'sine', freq: 880, duration: 0.08, gain: 0.3, at: 0 },
+      { wave: 'sine', freq: 1174, duration: 0.08, gain: 0.3, at: 0.07 },
+      { wave: 'sine', freq: 1568, duration: 0.3, gain: 0.3, at: 0.14, release: 0.25, vibrato: { depth: 12, rate: 14 } },
+    ],
+  },
   pickup_health: {
     segments: [
       { wave: 'triangle', freq: 523, duration: 0.1, gain: 0.4, at: 0 },
@@ -100,6 +107,81 @@ export const RETRO_RECIPES: Record<string, SynthRecipe> = {
   },
   footstep: {
     segments: [{ wave: 'noise', freq: 0, duration: 0.08, gain: 0.25, attack: 0.005, release: 0.06, lowpass: 500 }],
+  },
+  ambient_dungeon: {
+    // Seamless-ish drone: no envelope edges, slow beating between two low sines plus filtered rumble.
+    segments: [
+      { wave: 'sine', freq: 55, duration: 6, gain: 0.22, attack: 0.001, release: 0.001, vibrato: { depth: 0.6, rate: 0.17 } },
+      { wave: 'sine', freq: 82.5, duration: 6, gain: 0.12, attack: 0.001, release: 0.001, vibrato: { depth: 1.2, rate: 0.11 } },
+      { wave: 'triangle', freq: 27.5, duration: 6, gain: 0.1, attack: 0.001, release: 0.001 },
+      { wave: 'noise', freq: 0, duration: 6, gain: 0.05, attack: 0.001, release: 0.001, lowpass: 180 },
+    ],
+    length: 6,
+  },
+  door_open: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.7, gain: 0.5, attack: 0.05, release: 0.3, lowpass: 400 },
+      { wave: 'sawtooth', freq: 60, freqEnd: 45, duration: 0.7, gain: 0.3, attack: 0.05, release: 0.3, lowpass: 300, vibrato: { depth: 6, rate: 9 } },
+      { wave: 'square', freq: 180, freqEnd: 120, duration: 0.08, gain: 0.35, at: 0.85 },
+    ],
+  },
+  door_close: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.5, gain: 0.45, attack: 0.05, release: 0.2, lowpass: 400 },
+      { wave: 'sine', freq: 70, freqEnd: 40, duration: 0.25, gain: 0.7, at: 0.5, release: 0.2 },
+    ],
+  },
+  door_locked: {
+    segments: [
+      { wave: 'square', freq: 220, freqEnd: 200, duration: 0.06, gain: 0.35, at: 0 },
+      { wave: 'square', freq: 220, freqEnd: 200, duration: 0.06, gain: 0.35, at: 0.14 },
+      { wave: 'noise', freq: 0, duration: 0.05, gain: 0.3, at: 0.14, lowpass: 2500 },
+    ],
+  },
+  chest_open: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.15, gain: 0.35, lowpass: 900, release: 0.1 },
+      { wave: 'triangle', freq: 523, duration: 0.09, gain: 0.3, at: 0.2 },
+      { wave: 'triangle', freq: 784, duration: 0.09, gain: 0.3, at: 0.3 },
+      { wave: 'triangle', freq: 1046, duration: 0.3, gain: 0.3, at: 0.4, release: 0.25 },
+    ],
+  },
+  lever: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.12, gain: 0.35, lowpass: 1500, release: 0.05 },
+      { wave: 'square', freq: 140, freqEnd: 90, duration: 0.12, gain: 0.4, at: 0.15, release: 0.1 },
+      { wave: 'sine', freq: 50, duration: 0.5, gain: 0.5, at: 0.3, release: 0.4 },
+    ],
+  },
+  sword_swing: {
+    segments: [{ wave: 'noise', freq: 0, duration: 0.22, gain: 0.5, attack: 0.02, release: 0.15, lowpass: 2200 }],
+  },
+  sword_hit: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.12, gain: 0.6, lowpass: 1600, release: 0.1 },
+      { wave: 'square', freq: 260, freqEnd: 120, duration: 0.15, gain: 0.4, release: 0.1 },
+    ],
+  },
+  spell_cast: {
+    segments: [
+      { wave: 'sawtooth', freq: 200, freqEnd: 900, duration: 0.35, gain: 0.35, attack: 0.05, release: 0.2, lowpass: 3000, vibrato: { depth: 30, rate: 25 } },
+      { wave: 'noise', freq: 0, duration: 0.4, gain: 0.2, attack: 0.1, release: 0.3, lowpass: 3500 },
+    ],
+  },
+  spell_hit: {
+    segments: [
+      { wave: 'noise', freq: 0, duration: 0.3, gain: 0.6, attack: 0.005, release: 0.25, lowpass: 2000 },
+      { wave: 'sine', freq: 300, freqEnd: 60, duration: 0.3, gain: 0.5, release: 0.25 },
+    ],
+  },
+  blocked: {
+    segments: [{ wave: 'sine', freq: 90, freqEnd: 60, duration: 0.08, gain: 0.5, release: 0.06 }],
+  },
+  potion: {
+    segments: [
+      { wave: 'sine', freq: 400, freqEnd: 700, duration: 0.15, gain: 0.35, release: 0.1 },
+      { wave: 'sine', freq: 700, freqEnd: 1000, duration: 0.2, gain: 0.3, at: 0.15, release: 0.15 },
+    ],
   },
   level_start: {
     segments: [

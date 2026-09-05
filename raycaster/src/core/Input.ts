@@ -10,16 +10,17 @@ export type ActionBindings = Record<string, readonly string[]>;
 export const DEFAULT_BINDINGS: ActionBindings = {
   forward: ['KeyW', 'ArrowUp'],
   backward: ['KeyS', 'ArrowDown'],
-  strafeLeft: ['KeyA'],
-  strafeRight: ['KeyD'],
-  turnLeft: ['ArrowLeft', 'KeyQ'],
-  turnRight: ['ArrowRight', 'KeyE'],
-  run: ['ShiftLeft', 'ShiftRight'],
-  fire: ['Space', 'ControlLeft'],
-  interact: ['KeyF'],
+  turnLeft: ['KeyA', 'ArrowLeft'],
+  turnRight: ['KeyD', 'ArrowRight'],
+  strafeLeft: ['KeyQ'],
+  strafeRight: ['KeyE'],
+  attack: ['Space', 'ControlLeft'],
+  cast: ['KeyC'],
+  interact: ['KeyF', 'Enter'],
+  useItem: ['KeyH'],
   toggleMinimap: ['KeyM'],
   toggleMute: ['KeyN'],
-  reload: ['KeyR'],
+  restart: ['KeyR'],
 };
 
 export class Input {

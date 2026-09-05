@@ -1,7 +1,7 @@
 import { TextureRegistry, Texture } from '../renderer/Texture';
 import { createDefaultTextures } from '../renderer/ProceduralTextures';
 import { SpriteSheet, SpriteSheetRegistry } from '../renderer/SpriteSheet';
-import { humanoidSheet, pillarSheet, pickupSheet } from '../renderer/ProceduralSprites';
+import { humanoidSheet, pillarSheet, pickupSheet, orbSheet, chestSheet, leverSheet, crystalSheet } from '../renderer/ProceduralSprites';
 import { loadDirectionalSprite } from '../renderer/DirectionalSprites';
 
 export interface AssetBundle {
@@ -97,12 +97,18 @@ export async function loadAssets(options: AssetOptions = {}): Promise<AssetBundl
     }
   }
 
-  sprites.register(pillarSheet('pillar'));
-  sprites.register(pickupSheet('pickup_ammo', 'ammo'));
-  sprites.register(pickupSheet('pickup_health', 'health'));
-  spriteSources['pillar'] = 'procedural';
-  spriteSources['pickup_ammo'] = 'procedural';
-  spriteSources['pickup_health'] = 'procedural';
+  const props: SpriteSheet[] = [
+    pillarSheet('pillar'),
+    pickupSheet('pickup_health', 'health'),
+    crystalSheet('pickup_mana'),
+    chestSheet('chest'),
+    leverSheet('lever'),
+    orbSheet('spell_bolt'),
+  ];
+  for (const sheet of props) {
+    sprites.register(sheet);
+    spriteSources[sheet.name] = 'procedural';
+  }
 
   return { textures, sprites, spriteSources };
 }

@@ -105,7 +105,8 @@ describe('RetroSynth', () => {
 describe('sound bank formats', () => {
   it('validates the shipped spec', () => {
     const s = validateSoundBankSpec(spec);
-    expect(Object.keys(s.sounds)).toContain('pistol_fire');
+    expect(Object.keys(s.sounds)).toContain('sword_swing');
+    expect(Object.keys(s.sounds)).toContain('ambient_dungeon');
     expect(Object.keys(s.voices)).toContain('intro');
     expect(s.defaultVoiceId.length).toBeGreaterThan(0);
     // Every synth fallback exists for every spec sound so the game is never silent.
@@ -118,5 +119,46 @@ describe('sound bank formats', () => {
     expect(() => validateSoundBankManifest({ entries: { a: {} } })).toThrow(/file/);
     const m = validateSoundBankManifest({ version: 1, generatedAt: 'now', entries: { a: { file: 'a.mp3', hash: 'h', kind: 'voice' } } });
     expect(m.entries['a']).toEqual({ file: 'a.mp3', mimeType: 'audio/mpeg', hash: 'h', kind: 'voice' });
+  });
+});
+
+describe('AudioManager loops', () => {
+  it('returns an inactive handle before unlock and never starts duplicates once active', async () => {
+    const { AudioManager } = await import('../src/audio/AudioManager');
+    const specMod = validateSoundBankSpec(spec);
+    // Minimal AudioContext stand-in covering what unlock/playLoop touch.
+    const started: string[] = [];
+    const makeNode = () => ({ connect: () => undefined, disconnect: () => undefined, gain: { value: 1, cancelScheduledValues: () => undefined, setValueAtTime: () => undefined, linearRampToValueAtTime: () => undefined }, pan: { value: 0 } });
+    const fakeCtx = {
+      state: 'running',
+      currentTime: 0,
+      sampleRate: 8000,
+      destination: {},
+      resume: async () => undefined,
+      close: async () => undefined,
+      createGain: makeNode,
+      createStereoPanner: makeNode,
+      createBuffer: (_c: number, len: number, rate: number) => ({ length: len, sampleRate: rate, duration: len / rate, copyToChannel: () => undefined }),
+      createBufferSource: () => {
+        const node = { ...makeNode(), buffer: null, loop: false, playbackRate: { value: 1 }, addEventListener: () => undefined, start: () => { started.push('start'); }, stop: () => undefined };
+        return node;
+      },
+      decodeAudioData: async () => { throw new Error('no decode in tests'); },
+    };
+    const audio = new AudioManager({ spec: specMod, bankUrl: null, elevenLabs: null, contextFactory: () => fakeCtx as unknown as AudioContext });
+    const early = audio.playLoop('ambient_dungeon');
+    expect(early.isActive).toBe(false);
+    expect(early.isPlaying).toBe(false);
+    await audio.unlock();
+    const loop = audio.playLoop('ambient_dungeon', { volume: 0.5 });
+    expect(loop.isActive).toBe(true); // active while the buffer resolves
+    await audio.getBuffer('ambient_dungeon');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(loop.isPlaying).toBe(true);
+    expect(started).toHaveLength(1);
+    expect(audio.sourceOf('ambient_dungeon')).toBe('synth');
+    loop.stop();
+    expect(loop.isActive).toBe(false);
+    expect(loop.isPlaying).toBe(false);
   });
 });

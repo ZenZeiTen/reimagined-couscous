@@ -206,3 +206,64 @@ export function orbSheet(name: string, frameSize = 16): SpriteSheet {
     fillCircle(px, c, c, r * 0.5, packRGBA(255, 255, 220));
   });
 }
+
+/** Treasure chest with closed/open states. */
+export function chestSheet(name = 'chest', frameSize = 32): SpriteSheet {
+  const wood = packRGBA(120, 78, 40);
+  const woodDark = packRGBA(80, 50, 25);
+  const iron = packRGBA(90, 90, 100);
+  const gold = packRGBA(240, 200, 60);
+  return buildSheet({ name, frameSize, directions: 1, worldHeight: 0.45, animations: { closed: { fps: 1, loop: true, frameCount: 1 }, open: { fps: 6, loop: false, frameCount: 2 } } }, ({ px, size, anim, frame }) => {
+    const w = size * 0.8;
+    const x0 = (size - w) / 2;
+    const bodyH = size * 0.42;
+    const y0 = size - bodyH - 1;
+    fillRect(px, x0, y0, w, bodyH, wood);
+    fillRect(px, x0, y0, w, 2, woodDark);
+    fillRect(px, x0 + w / 2 - 2, y0, 4, bodyH, iron);
+    const lidH = size * 0.22;
+    const open = anim === 'open';
+    const lift = open ? (frame === 0 ? lidH * 0.6 : lidH * 1.3) : 0;
+    fillRect(px, x0, y0 - lidH - lift, w, lidH, woodDark);
+    fillRect(px, x0, y0 - lidH - lift, w, 2, wood);
+    if (open) fillRect(px, x0 + 3, y0 - 3, w - 6, 3, gold);
+    else fillRect(px, x0 + w / 2 - 2, y0 - 3, 4, 5, iron);
+  });
+}
+
+/** Wall lever with off/on states. */
+export function leverSheet(name = 'lever', frameSize = 32): SpriteSheet {
+  const base = packRGBA(70, 70, 80);
+  const handle = packRGBA(160, 120, 60);
+  const knob = packRGBA(200, 40, 40);
+  return buildSheet({ name, frameSize, directions: 1, worldHeight: 0.5, animations: { off: { fps: 1, loop: true, frameCount: 1 }, on: { fps: 1, loop: true, frameCount: 1 } } }, ({ px, size, anim }) => {
+    const cx = size / 2;
+    const baseY = size * 0.55;
+    fillRect(px, cx - size * 0.2, baseY, size * 0.4, size * 0.4, base);
+    const dir = anim === 'on' ? 1 : -1;
+    for (let i = 0; i < size * 0.35; i++) {
+      const y = baseY + size * 0.1 - i;
+      const x = cx + dir * i * 0.7;
+      fillRect(px, x - 1, y, 3, 2, handle);
+    }
+    fillCircle(px, cx + dir * size * 0.35 * 0.7, baseY + size * 0.1 - size * 0.35, Math.max(2, size * 0.08), knob);
+  });
+}
+
+/** Glowing mana crystal. */
+export function crystalSheet(name = 'pickup_mana', frameSize = 32): SpriteSheet {
+  return buildSheet({ name, frameSize, directions: 1, worldHeight: 0.35, animations: { idle: { fps: 5, loop: true, frameCount: 4 } } }, ({ px, size, frame }) => {
+    const cx = size / 2;
+    const pulse = 0.85 + 0.15 * Math.sin((frame / 4) * Math.PI * 2);
+    const h = size * 0.7 * pulse;
+    const w = size * 0.3;
+    const bottom = size - 2;
+    for (let y = 0; y < h; y++) {
+      const t = y / h;
+      const half = w * (t < 0.5 ? t * 2 : (1 - t) * 2) + 1;
+      const c = packRGBA(90 + 80 * t, 140 + 60 * t, 255);
+      fillRect(px, cx - half / 2, bottom - y, half, 1, c);
+    }
+    fillRect(px, cx - 1, bottom - h * 0.5, 2, h * 0.3, packRGBA(230, 240, 255));
+  });
+}

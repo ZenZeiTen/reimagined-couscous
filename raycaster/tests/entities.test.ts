@@ -131,7 +131,7 @@ describe('EntityManager and pickups', () => {
   it('collects pickups on overlap and compacts removed entities', () => {
     const { manager, world, player, sounds } = makeWorld(['#####', '#P..#', '#####']);
     const got: Array<[string, number]> = [];
-    manager.registerFactory('ammo', () => new Pickup('ammo', 12, { collect: (k, a) => { got.push([k, a]); return true; } }));
+    manager.registerFactory('ammo', () => new Pickup('mana', 12, { collect: (k, a) => { got.push([k, a]); return true; } }));
     manager.registerFactory('pillar', () => new Decoration('pillar'));
     manager.spawn('ammo', 3.5, 1.5);
     manager.spawn('pillar', 2.5, 1.5);
@@ -141,8 +141,8 @@ describe('EntityManager and pickups', () => {
     expect(got).toEqual([]);
     player.pos.set(3.5, 1.5);
     step(manager, world, 0.1);
-    expect(got).toEqual([['ammo', 12]]);
-    expect(sounds).toContain('pickup_ammo');
+    expect(got).toEqual([['mana', 12]]);
+    expect(sounds).toContain('pickup_mana');
     expect(manager.count).toBe(1);
     expect(manager.billboards().length).toBe(1);
   });
