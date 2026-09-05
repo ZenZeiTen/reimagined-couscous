@@ -1,0 +1,13 @@
+{
+  "name": "vassals-edge",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Vassal's Edge — The Fall of Vareth-Ghar. A King's Field II successor on three.js r185 with the Retro Forge PSX pipeline.",
+  "scripts": {
+    "serve": "npx http-server . -p 8080 -c-1",
+    "models": "python3 tools/bake_models.py",
+    "check": "node tools/check.cjs",
+    "shots": "node tools/screenshot.cjs"
+  }
+}
