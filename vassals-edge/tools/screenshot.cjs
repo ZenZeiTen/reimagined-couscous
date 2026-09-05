@@ -23,14 +23,19 @@ const VIEWS = [
   const browser = await pw.chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
   const page = await browser.newPage({ viewport: { width: 960, height: 720 } });
   const errors = []; const seen = new Set(); const add = s => { const k = s.split('\n')[0]; if (!seen.has(k)) { seen.add(k); errors.push(s.split('\n').slice(0, 3).join('\n')); } }; page.on('pageerror', e => add('pageerror: ' + e.message)); page.on('console', m => { if (m.type() === 'error') add('console: ' + m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/index.html`); await page.waitForTimeout(3500);
-  await page.screenshot({ path: path.join(OUT, '00_logo_or_prologue.png') });
-  /* the studio card leaves on its own after 3 s into the prologue; skip it after the grace period */
-  await page.waitForTimeout(2500); await page.keyboard.press('Space'); await page.waitForTimeout(1200);
+  await page.goto(`http://127.0.0.1:${port}/index.html`);
+  const waitState = (fn, label, ms) => page.waitForFunction(fn, null, { timeout: ms || 30000 }).catch(() => { throw new Error('timeout waiting for ' + label); });
+  await waitState(() => window.__vareth && window.__vareth.BOOT.state === 'prologue', 'prologue'); await page.waitForTimeout(500);
+  await page.screenshot({ path: path.join(OUT, '00_prologue.png') });
+  await waitState(() => window.__vareth.CS.total > 2.2, 'skip grace'); await page.keyboard.press('Space');
+  await waitState(() => window.__vareth.BOOT.state === 'title', 'title'); await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, '01_title.png') });
-  await page.keyboard.press('Space'); await page.waitForTimeout(600); await page.keyboard.press('Enter'); await page.waitForTimeout(900);   // New Oath
+  await page.keyboard.press('Space'); await page.waitForTimeout(600);
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; }   // New Oath
+  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await page.waitForTimeout(700);
   await page.screenshot({ path: path.join(OUT, '02_oath.png') });
-  await page.keyboard.press('Enter'); await page.waitForTimeout(1500);                                                                    // SWEAR
+  await page.keyboard.press('Enter');                                                                                           // SWEAR
+  await waitState(() => window.__vareth.G.mode === 'play' && !window.__vareth.BOOT.active, 'play'); await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, '03_play_start.png') });
   const val = await page.evaluate(() => { const r = window.__vareth.mapCheck(); return { v: r.v.text, a: r.a.text, ok: r.v.ok && r.a.ok }; });
   console.log(val.v + '\n' + val.a);

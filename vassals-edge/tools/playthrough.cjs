@@ -18,9 +18,16 @@ const fails = []; const check = (name, ok, extra) => { console.log((ok ? 'ok   '
   const browser = await pw.chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const page = await browser.newPage({ viewport: { width: 640, height: 480 } });
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text().split('\n')[0]); });
-  await page.goto(`http://127.0.0.1:${port}/index.html`); await page.waitForTimeout(6000);
-  await page.keyboard.press('Space'); await page.waitForTimeout(1200); await page.keyboard.press('Space'); await page.waitForTimeout(600);
-  await page.keyboard.press('Enter'); await page.waitForTimeout(900); await page.keyboard.press('Enter'); await page.waitForTimeout(1500);
+  await page.goto(`http://127.0.0.1:${port}/index.html`);
+  const waitState = (fn, label, ms) => page.waitForFunction(fn, null, { timeout: ms || 30000 }).catch(() => { throw new Error('timeout waiting for ' + label); });
+  await waitState(() => window.__vareth && window.__vareth.BOOT.state === 'prologue', 'prologue');
+  await waitState(() => window.__vareth.CS.total > 2.2, 'skip grace'); await page.keyboard.press('Space');
+  await waitState(() => window.__vareth.BOOT.state === 'title', 'title'); await page.waitForTimeout(600);
+  await page.keyboard.press('Space'); await page.waitForTimeout(600);
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; }   // New Oath
+  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await page.waitForTimeout(700);
+  await page.keyboard.press('Enter');
+  await waitState(() => window.__vareth.G.mode === 'play' && !window.__vareth.BOOT.active, 'play'); await page.waitForTimeout(600);
   const ev = (fn, arg) => page.evaluate(fn, arg);
   const tp = (x, y, z, yaw) => ev(([x, y, z, yaw]) => { const G = window.__vareth.G, p = G.player; p.x = x; p.y = y; p.z = z; p.yaw = yaw; p.vx = p.vz = p.vy = 0; G.hooks.resetZone(); }, [x, y, z, yaw]);
   const use = async label => { const r = await ev(l => { const G = window.__vareth.G; const it = G.interact.find(e => e.label === l && !(e.done && e.done())); if (!it) return false; it.on(); return true; }, label); return r; };
