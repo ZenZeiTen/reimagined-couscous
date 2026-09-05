@@ -10,12 +10,12 @@ import { inRect } from '../util.js';
 
 export function validateMap(spawn) {
   spawn = spawn || { x: -30, z: 0 };
-  const step = 0.25, r = SPEC.player.radius, { trap, gate, illusion, LIFT, HATCH, CDOOR, SHRINE_DOOR, timber, alcoveDoor, throneWall } = MECH;
+  const step = 0.25, r = SPEC.player.radius, { trap, gate, illusion, LIFT, HATCH, CDOOR, SHRINE_DOOR, timber, alcoveDoor, throneWall, moonSeal } = MECH;
   const T = [['shore', -24, 0, 0], ['belltower crystal', -26, 0, 5.5], ['pier (Mael)', -38, 0.15, 0], ['stair to cloister', -21, -3, -17],
     ['cloister altar (key)', -22, -3, -30.25], ['Aldous', -30.5, -3, -20.5], ['cove (via grate)', -14, 0, -12], ['hall', 0, 0, 0], ['pit floor', 1, -3, -2.25], ['lever', 7.5, -3, -2.25],
     ['landing', 13.5, 0, -2.25], ['gallery crystal', 11, 0, 1.5], ['gate (hall side)', 7.5, 0, 0], ['ring niche', 5, 0, -5],
     ['cistern chamber', -6, -3, 1], ['lift (top)', -10, -3, -4.5], ['sepulchre key', -10, -9, -11], ['wreck interior (fire)', -31, 0, -6.5],
-    ['shrine (seal)', -32, 0, -13], ['drained alcove (bell)', -18.4, -3, -33.5], ['moon gate (king)', -10, -9, -23]];
+    ['shrine (seal)', -32, 0, -13], ['drained alcove (bell)', -18.4, -3, -33.5], ['moon gate (king)', -10, -9, -23], ['the Root (moon key)', -10, -9, -30], ['the Heart', -10, -9, -42.5]];
   const trapF = LEVEL.floors.find(f => f.tag === 'trap'), illB = illusion.userData.box;
   const key = (x, z, y) => Math.round(x / step) + ',' + Math.round(z / step) + ',' + Math.round(y * 2);
   const cell = (x, z, refY) => { const y = floorAt(x, z, refY); if (y === -Infinity) return null; const q = { x, z };
@@ -28,7 +28,7 @@ export function validateMap(spawn) {
       if (inRect(x, z, LIFT.rect)) { if (Math.abs(y - LIFT.top) < 0.3) push(x, z, LIFT.bottom); if (Math.abs(y - LIFT.bottom) < 0.3) push(x, z, LIFT.top); } }
     return seen; };
   const saved = [trap.armed, trapF.disabled, illB.disabled, gate.block.disabled, HATCH.block.disabled, HATCH.floor.disabled, CDOOR.block.disabled, SHRINE_DOOR.block.disabled,
-    timber.userData.box.disabled, alcoveDoor.userData.box.disabled, throneWall.userData.box.disabled];
+    timber.userData.box.disabled, alcoveDoor.userData.box.disabled, throneWall.userData.box.disabled, moonSeal.userData.box.disabled];
   const liftSaved = LIFT.rect.y; LIFT.rect.y = LIFT.top; const liftLow = Object.assign({}, LIFT.rect, { y: LIFT.bottom }); LEVEL.floors.push(liftLow);
   const MECHS = [
     { n: 'trap', at: [-0.75, 0, -2.25], apply: () => { trap.armed = false; trapF.disabled = true; } },
@@ -39,14 +39,15 @@ export function validateMap(spawn) {
     { n: 'ember→timber', at: [-25, 0, 4.5], apply: () => { timber.userData.box.disabled = true; } },
     { n: 'seal→shrine', at: [-30.5, -3, -20.5], apply: () => { SHRINE_DOOR.block.disabled = true; } },
     { n: 'clapper→bell→alcove', at: [-30.25, 0, -14.75], apply: () => { alcoveDoor.userData.box.disabled = true; } },
-    { n: 'moon key→king→gate', at: [-10, -9, -11], apply: () => { throneWall.userData.box.disabled = true; } } ];
+    { n: 'moon key→king→gate', at: [-10, -9, -11], apply: () => { throneWall.userData.box.disabled = true; } },
+    { n: 'moon key→seal', at: [-10, -9, -23], apply: () => { moonSeal.userData.box.disabled = true; } } ];
   const result = {}, phases = [];
   const run = name => { const seen = flood(); phases.push(name); for (const t of T) if (!result[t[0]] && seen.has(key(t[1], t[3], t[2]))) result[t[0]] = name; return seen; };
   let seen = run('1 initial'), fired = new Set(), n = 1;
   for (;;) { const ready = MECHS.filter(m => !fired.has(m.n) && seen.has(key(m.at[0], m.at[2], m.at[1]))); if (!ready.length) break;
     ready.forEach(m => { fired.add(m.n); m.apply(); }); seen = run(++n + ' ' + ready.map(m => m.n).join('+')); }
   [trap.armed, trapF.disabled, illB.disabled, gate.block.disabled, HATCH.block.disabled, HATCH.floor.disabled, CDOOR.block.disabled, SHRINE_DOOR.block.disabled,
-    timber.userData.box.disabled, alcoveDoor.userData.box.disabled, throneWall.userData.box.disabled] = saved;
+    timber.userData.box.disabled, alcoveDoor.userData.box.disabled, throneWall.userData.box.disabled, moonSeal.userData.box.disabled] = saved;
   LIFT.rect.y = liftSaved; LEVEL.floors.splice(LEVEL.floors.indexOf(liftLow), 1);
   const lines = T.map(t => (result[t[0]] ? 'ok  ' : 'UNREACHABLE  ') + t[0] + (result[t[0]] ? ' (phase ' + result[t[0]] + ')' : ''));
   return { ok: T.every(t => result[t[0]]), lines, phases, text: lines.join('\n') + '\nphases: ' + phases.join(' | ') };

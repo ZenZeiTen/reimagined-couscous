@@ -4,7 +4,7 @@ import { SPEC } from './spec.js';
 import { G, makePlayer, recalc } from './state.js';
 import { RetroPipeline, U } from './engine/retro.js';
 import { scene, floorAt } from './engine/level.js';
-import { W } from './world/build.js';
+import { W, MECH } from './world/build.js';
 import { validateMap, auditLayout } from './world/validate.js';
 import { AUDIO } from './systems/audio.js';
 import { camera, rig, updatePlayer, updateWeapon, setViewModel, updateBasis, INPUT } from './systems/player.js';
@@ -13,7 +13,7 @@ import { CBT, respawn } from './systems/combat.js';
 import { updateMagic } from './systems/magic.js';
 import { buildNPCs, updateNPCs } from './systems/npcs.js';
 import { buildPickups, buildInteractables, updateInteract, updatePickups } from './systems/interact.js';
-import { updateWorld, resetZone } from './systems/worldsys.js';
+import { updateWorld, resetZone, zoneAt } from './systems/worldsys.js';
 import { updateDialogue, DLG } from './systems/scripts.js';
 import { updateCutscene, CS, letterbox } from './systems/cutscenes.js';
 import './systems/save.js';
@@ -43,7 +43,7 @@ initMenu(pipe, toggleCRT, toggleDbg, dbgOn);
 initBoot();
 function mapCheck() { const v = validateMap(G.player.spawn), a = auditLayout(); console.log(v.text + '\n' + a.text); say('MAP CHECK ' + (v.ok && a.ok ? 'PASS' : 'FAIL') + ' — ' + v.lines.concat(a.lines).join(' · '), 10); return { v, a }; }
 initInput(canvas, { toggleDbg, toggleCRT, mapCheck });
-window.__vareth = { G, validateMap, auditLayout, mapCheck, SPEC, pipe, camera, scene, BOOT, CS, DLG, MENU, W };
+window.__vareth = { G, validateMap, auditLayout, mapCheck, SPEC, pipe, camera, scene, BOOT, CS, DLG, MENU, W, MECH, zoneAt };
 if (isTouch) document.body.classList.add('touch');
 
 function resize() {

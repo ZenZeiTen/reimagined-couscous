@@ -16,7 +16,8 @@ const VIEWS = [
   ['shore', -30, 0, 0, -Math.PI / 2, 0], ['cinder', -25.2, 0, 3.4, Math.PI, 0.05], ['garrick', -17.5, 0, 6.0, -Math.PI / 2, 0], ['pier_mael', -36.2, 0.15, 0.3, Math.PI / 2, 0],
   ['wreck', -28, 0, -6.5, Math.PI / 2, 0], ['stair', -21, 0, -9, 0, -0.2], ['cloister', -22, -3, -18, 0, 0], ['aldous', -29.4, -3, -20.5, Math.PI / 2, 0], ['altar', -22, -3, -27.5, 0, 0],
   ['hall', -7, 0, 0, -Math.PI / 2, 0], ['sentry', -1, 0, 3.2, -Math.PI / 2, 0], ['ledge', 9.2, 0, -0.4, -Math.PI / 2, 0], ['cistern', -1.5, -3, 1, Math.PI / 2, 0],
-  ['sepulchre', -10, -9, -7, 0, 0], ['throne', -10, -9, -10.2, 0, 0.1], ['shrine', -32, 0, -11.2, 0, 0], ['moongate', -10, -9, -17, 0, 0.15]
+  ['sepulchre', -10, -9, -7, 0, 0], ['throne', -10, -9, -10.2, 0, 0.1], ['shrine', -32, 0, -11.2, 0, 0], ['moongate', -10, -9, -17, 0, 0.15],
+  ['root_passage', -10, -9, -25.5, 0, 0], ['root_heart', -10, -9, -38, 0, 0.1], ['root_crystal', -17, -9, -41, Math.PI * 0.75, 0]
 ];
 (async () => {
   await new Promise(r => server.listen(0, '127.0.0.1', r)); const port = server.address().port;
@@ -30,15 +31,17 @@ const VIEWS = [
   await waitState(() => window.__vareth.CS.total > 2.2, 'skip grace'); await page.keyboard.press('Space');
   await waitState(() => window.__vareth.BOOT.state === 'title', 'title'); await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, '01_title.png') });
-  await page.keyboard.press('Space'); await page.waitForTimeout(600);
-  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; }   // New Oath
-  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await page.waitForTimeout(700);
+  const ready = () => waitState(() => window.__vareth.BOOT.debounce <= 0, 'debounce');   // boot input is debounced in game time, which runs slower than wall time headless
+  await ready(); await page.keyboard.press('Space'); await ready(); await page.waitForTimeout(300); await page.screenshot({ path: path.join(OUT, '01_title_menu.png') });
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; await ready(); }   // New Oath
+  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await ready(); await page.waitForTimeout(200);
   await page.screenshot({ path: path.join(OUT, '02_oath.png') });
   await page.keyboard.press('Enter');                                                                                           // SWEAR
   await waitState(() => window.__vareth.G.mode === 'play' && !window.__vareth.BOOT.active, 'play'); await page.waitForTimeout(800);
   await page.screenshot({ path: path.join(OUT, '03_play_start.png') });
   const val = await page.evaluate(() => { const r = window.__vareth.mapCheck(); return { v: r.v.text, a: r.a.text, ok: r.v.ok && r.a.ok }; });
   console.log(val.v + '\n' + val.a);
+  await page.evaluate(() => { const V = window.__vareth; V.G.flags.moongate_open = true; V.MECH.moonSeal.userData.box.disabled = true; V.MECH.moonSeal.visible = false; });
   for (const [name, x, y, z, yaw, pitch] of VIEWS) {
     await page.evaluate(([x, y, z, yaw, pitch]) => { const p = window.__vareth.G.player; p.x = x; p.z = z; p.y = y; p.yaw = yaw; p.pitch = pitch; p.vx = p.vz = p.vy = 0; window.__vareth.G.hooks.resetZone(); }, [x, y, z, yaw, pitch]);
     await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, `10_${name}.png`) });
@@ -53,6 +56,11 @@ const VIEWS = [
   await page.waitForTimeout(3000); await page.keyboard.press('Space'); await page.waitForTimeout(500);
   await page.evaluate(() => { const G = window.__vareth.G, p = G.player; p.x = -10; p.z = -8; p.y = -9; p.yaw = 0; G.flags.king_woke = true; G.hooks.resetZone(); }); await page.waitForTimeout(2500); await page.screenshot({ path: path.join(OUT, '24_boss.png') });
   await page.evaluate(() => { const G = window.__vareth.G, p = G.player; p.x = -30.5; p.z = 4.2; p.y = 0; p.yaw = Math.PI; G.hooks.resetZone(); }); await page.waitForTimeout(1500); await page.screenshot({ path: path.join(OUT, '25_crawler.png') });
+  /* the ending screen, then the title it returns to */
+  await page.evaluate(() => { const G = window.__vareth.G, p = G.player; p.x = -10; p.z = -41.5; p.y = -9; p.yaw = Math.PI; G.hooks.resetZone(); G.hooks.cutscene('ending'); }); await page.waitForTimeout(2500); await page.screenshot({ path: path.join(OUT, '26_ending_cutscene.png') });
+  for (let i = 0; i < 6; i++) { await page.waitForTimeout(700); await page.keyboard.press('Space'); }
+  await waitState(() => window.__vareth.BOOT.state === 'ending' && window.__vareth.BOOT.t > 4.1, 'ending screen', 40000); await page.screenshot({ path: path.join(OUT, '27_ending_screen.png') });
+  await page.keyboard.press('Space'); await waitState(() => window.__vareth.BOOT.state === 'title', 'title after ending'); await page.waitForTimeout(1200); await page.screenshot({ path: path.join(OUT, '28_title_after_ending.png') });
   const state = await page.evaluate(() => { const G = window.__vareth.G; return { mode: G.mode, flags: Object.keys(G.flags), inv: G.player.inv.map(e => e.id + 'x' + e.qty), enemies: G.enemies.map(e => e.type + ':' + e.state) }; });
   console.log(JSON.stringify(state));
   await browser.close(); server.close();

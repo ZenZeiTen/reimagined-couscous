@@ -33,9 +33,14 @@ export const CUTSCENES = {
     { dur: 6, zone: 'sepulchre', cam: [-9, -7.0, -10.5], look: [-10, -7.6, -12.6], vo: 'The King sits down. The crystal in his chest goes dark, one facet at a time.', actor: 'king_sit' },
     { dur: 6, zone: 'moongate', cam: [-10, -7.0, -15.6], camTo: [-10, -7.2, -17.5], look: [-10, -5.0, -22], vo: 'Beyond the throne the wall is not a wall. The Moon Gate has been waiting for the key, and for you.', actor: 'gate_reveal' }
   ], after: { set: 'king_dead', msg: 'The way to the Moon Gate is open.' } },
+  gate_open: { shots: [
+    { dur: 6, zone: 'moongate', cam: [-10, -7.2, -18.5], camTo: [-10, -7.2, -20.5], look: [-10, -5.0, -23], vo: 'The key turns. The seal does not open so much as stop pretending to be stone.', actor: 'seal_break' },
+    { dur: 5, zone: 'root', cam: [-10, -7.0, -27.5], camTo: [-10, -7.2, -31.0], look: [-10, -5.5, -45], vo: 'Beyond the gate, a hum. Something down there has been keeping the island’s count.' }
+  ], after: { set: 'moongate_open', msg: 'The Moon Gate is open. The Root lies beyond.' } },
   ending: { shots: [
-    { dur: 7, zone: 'moongate', cam: [-10, -7.2, -18.5], camTo: [-10, -7.2, -20.5], look: [-10, -5.0, -23], vo: 'The key turns. The gate does not open so much as stop pretending to be shut.', actor: 'gate_open' },
-    { dur: 8, black: true, cap: ['The oath is kept.', 'The sea will have to find another name.'] },
-    { dur: 8, black: true, cap: ['VASSAL’S EDGE', 'The Fall of Vareth-Ghar'] }
+    { dur: 7, zone: 'root', cam: [-10, -7.0, -40.5], camTo: [-10, -6.4, -42.2], look: [-10, -5.6, -45], vo: 'You lay your hand on the Heart. It is warm, and it is counting.', actor: 'heart' },
+    { dur: 6, zone: 'root', cam: [-13, -6.2, -41.5], camTo: [-7, -6.2, -41.5], look: [-10, -5.6, -45], vo: 'The count stops. Under the tide the Weaver goes quiet; under the root the Serpent lets go.', actor: 'heart' },
+    { dur: 7, black: true, cap: ['The oath is kept.', 'The sea will have to find another name.'] },
+    { dur: 7, black: true, cap: ['VASSAL’S EDGE', 'The Fall of Vareth-Ghar'] }
   ], after: { set: 'ending', end: true } }
 };

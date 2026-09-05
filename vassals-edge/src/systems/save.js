@@ -2,7 +2,7 @@
 import { G, recalc } from '../state.js';
 import { SPEC } from '../spec.js';
 import { MECH } from '../world/build.js';
-import { openDoor, drainCloister, openThroneWall, WORLD } from './worldsys.js';
+import { openDoor, drainCloister, openThroneWall, openMoonSeal, WORLD } from './worldsys.js';
 import { PICKUPS, CHESTS } from './interact.js';
 import { LEVEL } from '../engine/level.js';
 
@@ -28,6 +28,7 @@ export function load() {
   if (M.timber) { timber.userData.box.disabled = true; timber.visible = false; }
   if (G.flags.cloister_drained) { drainCloister(); WORLD.drainT = 1; MECH.cloisterWater.level = -2.98; MECH.cloisterWater.mesh.position.y = -2.98; }
   if (G.flags.king_dead) openThroneWall();
+  if (G.flags.moongate_open) openMoonSeal();
   if (G.flags.bell_rung) MECH.bell.userData.parts.clapper.visible = true;
   for (const e of PICKUPS) if (G.flags['took:' + e.key]) { e.taken = true; e.mesh.visible = false; }
   for (const k in CHESTS) if (G.flags['chest:' + k]) { CHESTS[k].open = true; CHESTS[k].lid.rotation.x = -1.7; }

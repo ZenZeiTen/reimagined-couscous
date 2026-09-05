@@ -5,7 +5,7 @@ import { G, giveItem } from '../state.js';
 import { SPEC } from '../spec.js';
 import { U } from '../engine/retro.js';
 import { camera, rig } from './player.js';
-import { zoneLook, WORLD, drainCloister, openThroneWall } from './worldsys.js';
+import { zoneLook, WORLD, drainCloister, openThroneWall, openMoonSeal } from './worldsys.js';
 import { wakeEnemy } from './enemies.js';
 import { play } from './anim.js';
 import { MECH, boat } from '../world/build.js';
@@ -38,7 +38,9 @@ const ACTORS = {
   king_stand: { enter() { if (G.audio) G.audio.bossRoar(); }, exit() { const k = G.npcs.enemy_king; if (k) { k.state = 'CHASE'; k.alert = true; } } },
   king_sit: { enter() { const k = G.npcs.enemy_king; if (k) play(k, 'death', true); } },
   gate_reveal: { enter() { openThroneWall(); if (G.audio) G.audio.gate(); } },
-  gate_open: { enter() { if (G.audio) { G.audio.crystal(); G.audio.bell(0, 0.4); } }, tick(t) { const ks = MECH.moongate.userData.parts.keystone; if (ks) ks.material.uniforms.uEmissive.value.setRGB(0.4 + t * 0.08, 0.45 + t * 0.08, 0.7 + t * 0.04); } }
+  seal_break: { enter() { if (G.audio) { G.audio.crystal(); G.audio.bell(0, 0.4); } }, tick(t) { const ks = MECH.moongate.userData.parts.keystone; if (ks) ks.material.uniforms.uEmissive.value.setRGB(0.4 + t * 0.08, 0.45 + t * 0.08, 0.7 + t * 0.04);
+      if (t > 3.2) openMoonSeal(); }, exit() { openMoonSeal(); } },
+  heart: { enter() { if (G.audio) { G.audio.tone(55, 220, 6, 'sine', 0.2, 0); G.audio.crystal(); } }, tick(t) { const h = MECH.heart; if (h) { h.rotation.y += 0.004; const m = h.userData.parts.body.material; if (m && m.uniforms) m.uniforms.uEmissive.value.setRGB(0.43 + Math.min(0.5, t * 0.06), 0.52 + Math.min(0.4, t * 0.05), 0.69 + Math.min(0.3, t * 0.04)); } } }
 };
 function nextShot() {
   const prev = CS.def.shots[CS.shot]; if (prev && prev.actor && ACTORS[prev.actor] && ACTORS[prev.actor].exit) ACTORS[prev.actor].exit();

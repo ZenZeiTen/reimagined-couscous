@@ -7,10 +7,11 @@
  *   HIGH CITADEL       lower gallery: hall, trapdoor, niche, ledge room, gate
  *   IRON CISTERN       tunnel · locked iron door · chamber · lift
  *   CRYSTAL SEPULCHRE  x -18..-2, z -13.6..-6, y -9   quartz pillars · the Hollowed King · Moon-Sealed Key
- *   MOON GATE HALL     x -16..-4, z -25..-14.6, y -9  opens when the King falls; the Moon Gate ends the game
+ *   MOON GATE HALL     x -16..-4, z -25..-14.6, y -9  opens when the King falls; the Moon-Sealed Key dissolves the gate's seal
+ *   ROOT OF VAL-AZAER  x -22..2, z -51..-36, y -9 (5 m under the cloister's floor, so the two never touch)   the island's core: the Heart crystal ends the game
  *
  *   KEY-LOCK CHAIN  Shore → Cloister (Cistern Key; Aldous → Warden's Seal) → Shrine (Bell Clapper, Spear) → Bell (drains the cloister: Plate, Moonfall)
- *                   Citadel tunnel door → Cistern → lift → Sepulchre → Moon Key wakes the King → Moon Gate.
+ *                   Citadel tunnel door → Cistern → lift → Sepulchre → Moon Key wakes the King → Moon Gate → the Root → the Heart.
  */
 import * as THREE from 'three';
 import { scene, LEVEL, block, slab, ramp, zone, addLadder, waterPlane, door, collider, boxGeo } from '../engine/level.js';
@@ -121,12 +122,35 @@ export const throne = { seat: block(-10, -8.3, -12.9, 1.6, 1.4, 1.0, { mat: MAT.
 zone('moongate', 'The Moon Gate', -17, -3, -26, -13.8, -10, -3.5, [0.06, 0.07, 0.14], 4, 22, [0.14, 0.16, 0.28],
   { lights: [[[-10, -6, -23.5], [0.8, 0.85, 1.0], 12], [[-10, -7.2, -16], [0.5, 0.55, 0.9], 6]] });
 slab(-16, -4, -25, -13.5, -9, { mat: MAT.tile });
-block(-16.2, -6.5, -19.4, 0.4, 5.2, 11.2); block(-3.8, -6.5, -19.4, 0.4, 5.2, 11.2); block(-10, -6.5, -25.2, 12.4, 5.2, 0.4);
+block(-16.2, -6.5, -19.4, 0.4, 5.2, 11.2); block(-3.8, -6.5, -19.4, 0.4, 5.2, 11.2);
+block(-13.75, -6.5, -25.2, 4.9, 5.2, 0.4); block(-6.25, -6.5, -25.2, 4.9, 5.2, 0.4); block(-10, -4.4, -25.2, 2.6, 1.0, 0.4, { tag: 'mounted' });   // south wall, cut for the gate's opening (x -11.3..-8.7)
 block(-14, -6.5, -14.0, 4, 5.2, 0.4); block(-6, -6.5, -14.0, 4, 5.2, 0.4); block(-10, -4.3, -14.0, 4, 0.8, 0.4);   // the throne wall is the doorway's own block
 block(-10, -3.75, -19.4, 12.4, 0.3, 11.2, { noCollide: true, mat: MAT.quartz });
 [[-14, -18], [-6, -18], [-14, -22], [-6, -22]].forEach(q => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 5.2, 6), MAT.quartz); c.position.set(q[0], -6.5, q[1]); scene.add(c); collider(q[0] - 0.45, q[0] + 0.45, -9, -4, q[1] - 0.45, q[1] + 0.45); });
 export const moongate = modelGroup('moongate'); moongate.position.set(-10, -9, -24.4); scene.add(moongate); W.props.push(moongate);
-collider(-11.9, -8.1, -9, -4.4, -24.9, -23.9, 'moongate');
+collider(-11.9, -11.3, -9, -4.4, -24.9, -23.9, 'moongate'); collider(-8.7, -8.1, -9, -4.4, -24.9, -23.9, 'moongate');
+/* the seal: a pane of living quartz in the arch; the Moon-Sealed Key dissolves it */
+export const moonSeal = block(-10, -6.7, -24.4, 2.6, 4.6, 0.2, { mat: MAT.crystal, tag: 'moonseal' });
+
+/* ---------------- THE ROOT OF VAL-AZAER — the island's core, beyond the gate ---------------- */
+zone('root', 'The Root of Val-Azaer', -23, 3, -52, -25.2, -10, 0, [0.04, 0.05, 0.10], 5, 30, [0.16, 0.18, 0.30],
+  { lights: [[[-10, -5.5, -45], [0.85, 0.9, 1.0], 16], [[-19, -6.5, -39], [0.5, 0.6, 0.9], 7], [[-1, -6.5, -49], [0.5, 0.6, 0.9], 7]] });
+/* the passage: x -11.3..-8.7, z -36.2..-24 (it runs under the cloister's south wall, 6 m below it) */
+slab(-11.3, -8.7, -36.2, -24.0, -9, { mat: MAT.tile });
+block(-11.5, -6.5, -30.1, 0.4, 5.2, 12.4, { mat: MAT.quartz }); block(-8.5, -6.5, -30.1, 0.4, 5.2, 12.4, { mat: MAT.quartz });
+block(-10, -4.25, -30.1, 3.0, 0.3, 12.4, { noCollide: true, mat: MAT.quartz });
+/* the cavern: x -22..2, z -51..-36, 8 m high */
+slab(-22, 2, -51, -36.0, -9, { mat: MAT.ash });
+block(-22.2, -5, -43.5, 0.4, 8, 15.4, { mat: MAT.rock }); block(2.2, -5, -43.5, 0.4, 8, 15.4, { mat: MAT.rock }); block(-10, -5, -51.2, 24.8, 8, 0.4, { mat: MAT.rock });
+block(-16.75, -5, -36.2, 10.9, 8, 0.4, { mat: MAT.rock }); block(-3.25, -5, -36.2, 10.9, 8, 0.4, { mat: MAT.rock }); block(-10, -2.5, -36.2, 2.6, 3, 0.4, { mat: MAT.rock });
+block(-10, -0.85, -43.6, 24.8, 0.3, 15.6, { noCollide: true, mat: MAT.quartz });
+[[-18, -40], [-2, -40], [-18, -47], [-2, -47]].forEach(q => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 8, 6), MAT.quartz); c.position.set(q[0], -5, q[1]); scene.add(c);
+  crystalAt(q[0], -1.6, q[1], 1.5); collider(q[0] - 0.6, q[0] + 0.6, -9, -1, q[1] - 0.6, q[1] + 0.6); });
+/* the Heart: Val-Azaer itself, grown up through the floor */
+export const heart = crystalAt(-10, -8.2, -45, 6); pedestal(-10, -9, -45, 1.3, 1.7, 0.9, MAT.crystalBase);
+[[-13, -42.5, 2.2], [-7, -47.6, 1.8], [-6.2, -42.2, 1.4], [-14.2, -47.2, 2.6]].forEach(q => { crystalAt(q[0], -9.2, q[1], q[2]); collider(q[0] - 0.35, q[0] + 0.35, -9, -6, q[1] - 0.35, q[1] + 0.35); });
+crystalAt(-20, -8.0, -38, 0.9); pedestal(-20, -9, -38, 0.36, 0.48, 0.8, MAT.crystalBase);                                    // the last rest
+{ const b = modelGroup('bones'); b.position.set(-4, -9, -38.5); scene.add(b); const b2 = modelGroup('bones'); b2.position.set(-17, -9, -49); b2.rotation.y = 1.2; scene.add(b2); }
 /* the tell: a seated corpse facing the blank south wall of the hall */
 { const g = new THREE.Group(); g.position.set(5.2, 0, -3.1);
   const add = (w, h, d, x, y, z, mat) => { const m = new THREE.Mesh(boxGeo(w, h, d), mat || MAT.bone); m.position.set(x, y, z); g.add(m); };
@@ -239,6 +263,9 @@ W.spawns = [
   { type: 'husk', x: -8, y: -3, z: -4.5, yaw: 0, bounds: { x0: -11.5, x1: -0.9, z0: -5.5, z1: 3.5 }, avoid: [{ x0: -11.6, x1: -8.4, y0: -4, y1: 0, z0: -6, z1: -3 }] },
   { type: 'wisp', x: -14.5, y: -9, z: -7.5, yaw: 0, bounds: { x0: -17.5, x1: -2.5, z0: -13.2, z1: -6.4 } },
   { type: 'wisp', x: -5, y: -9, z: -12, yaw: 0, bounds: { x0: -17.5, x1: -2.5, z0: -13.2, z1: -6.4 } },
+  { type: 'wisp', x: -16, y: -9, z: -41, yaw: Math.PI / 2, bounds: { x0: -21.5, x1: 1.5, z0: -50.5, z1: -36.5 } },
+  { type: 'wisp', x: -3, y: -9, z: -46, yaw: -Math.PI / 2, bounds: { x0: -21.5, x1: 1.5, z0: -50.5, z1: -36.5 } },
+  { type: 'bowman', x: -1, y: -9, z: -39, yaw: Math.PI / 2, bounds: { x0: -21.5, x1: 1.5, z0: -50.5, z1: -36.5 } },
   { type: 'king', x: -10, y: -9, z: -12.6, yaw: Math.PI, bounds: { x0: -17.5, x1: -2.5, z0: -13.2, z1: -6.4 }, dormant: 'king_woke', id: 'king', seated: true }
 ];
 /* ---------------- pickups: [item, qty, x, y, z, options] ---------------- */
@@ -256,7 +283,8 @@ W.pickups = [
   ['moon_lily', 1, -17.6, -8.94, -12.6, {}], ['sentry_greaves', 1, 13.2, 0.02, 2.4, {}],
   ['bell_maul', 1, -11.2, -2.94, 3.4, { rot: [0, 0.4, Math.PI / 2] }],
   ['warden_spear', 1, -32, 1.05, -14.6, { rot: [0, 0, Math.PI / 2 - 0.15] }], ['bell_clapper', 1, -30.2, 0.05, -14.8, {}], ['seer_tincture', 1, -33.6, 0.05, -14.6, {}],
-  ['warden_plate', 1, -18.4, -2.1, -34.4, { rot: [0, Math.PI, 0] }], ['scroll_moonfall', 1, -17.7, -2.94, -33.2, {}]
+  ['warden_plate', 1, -18.4, -2.1, -34.4, { rot: [0, Math.PI, 0] }], ['scroll_moonfall', 1, -17.7, -2.94, -33.2, {}],
+  ['pearl', 3, -19.5, -8.94, -49.8, {}], ['moon_lily', 2, 0.6, -8.94, -37.2, {}], ['seer_tincture', 1, -3.2, -8.94, -49.6, {}]
 ];
 /* chests: the lid swings on the 'lid' socket; contents are given when opened */
 W.chests = [
@@ -265,6 +293,6 @@ W.chests = [
   { x: -3.6, y: -9, z: -6.8, yaw: Math.PI, items: [['tide_water', 2], ['ember_bread', 1]], id: 'sepulchre_chest' }
 ];
 /* the drained-alcove and bell-vault mechanisms are driven from systems/world.js via these handles */
-export const MECH = { alcoveDoor, throneWall, timber, cloisterWater, bell, moongate, trap, gate, lever, illusion, LIFT, HATCH, CDOOR, SHRINE_DOOR };
+export const MECH = { alcoveDoor, throneWall, timber, cloisterWater, bell, moongate, moonSeal, heart, trap, gate, lever, illusion, LIFT, HATCH, CDOOR, SHRINE_DOOR };
 export function boat() { const b = new THREE.Group(); const add = (w, h, d, x, y, z) => { const m = new THREE.Mesh(boxGeo(w, h, d), MAT.wood); m.position.set(x, y, z); b.add(m); };
   add(3.2, 0.5, 1.4, 0, 0.25, 0); add(3.4, 0.16, 0.16, 0, 0.6, 0.72); add(3.4, 0.16, 0.16, 0, 0.6, -0.72); add(0.14, 0.14, 2.4, -0.4, 0.62, 0); b.position.set(-48, -0.3, 0); scene.add(b); return b; }

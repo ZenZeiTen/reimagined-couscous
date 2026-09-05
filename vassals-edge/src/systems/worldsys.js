@@ -24,7 +24,7 @@ export function resetZone() { zoneCur = null; }
 export function inWater() { const p = G.player; for (const Wt of LEVEL.water) if (inRect(p.x, p.z, Wt) && p.y < Wt.level - 0.05) return Wt; return null; }
 export function openDoor(D) { if (D.open) return; D.open = true; D.block.disabled = true; if (D.floor) D.floor.disabled = true; if (G.audio) G.audio.gate(); }
 
-const { trap, gate, lever, illusion, LIFT, cloisterWater, bell, alcoveDoor, throneWall, moongate } = MECH;
+const { trap, gate, lever, illusion, LIFT, cloisterWater, bell, alcoveDoor, throneWall, moongate, moonSeal } = MECH;
 export const WORLD = { drainT: 0, bellSwing: 0, gateOpenT: 0 };
 export function revealIllusion() { if (illusion.userData.revealed) return; illusion.userData.revealed = true; illusion.userData.fade = 1;
   illusion.material = psxMat({ map: TEX.stone, stipple: true, opacity: 1 }); illusion.userData.box.disabled = true; if (G.audio) G.audio.noise(0.8, 'lowpass', 500, 120, 0.25, 0); G.say('The wall was never there.', 3); }
@@ -32,6 +32,7 @@ export function pullLever() { if (lever.pulled) return; lever.pulled = true; gat
 export function workLift() { if (LIFT.moving) return; LIFT.moving = true; LIFT.t = 0; LIFT.from = LIFT.rect.y; LIFT.to = LIFT.rect.y > -6 ? LIFT.bottom : LIFT.top; if (G.audio) G.audio.gate(); }
 export function drainCloister() { if (G.flags.cloister_drained) return; G.flags.cloister_drained = true; alcoveDoor.userData.box.disabled = true; alcoveDoor.visible = false; }
 export function openThroneWall() { throneWall.userData.box.disabled = true; throneWall.visible = false; }
+export function openMoonSeal() { if (moonSeal.userData.box.disabled) return; G.flags.moongate_open = true; moonSeal.userData.box.disabled = true; moonSeal.visible = false; }
 
 export function updateWorld(dt) {
   const p = G.player, t = CLOCK.t;

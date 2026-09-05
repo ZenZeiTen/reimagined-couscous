@@ -14,6 +14,7 @@ export const AUDIO = {
     cistern:   { wind: 0,    surf: 0,    hum: 0.06, chime: 0,    heat: 0.04, events: { groan: [8, 20], drip: [1, 3] },   rev: { len: 1.2, wet: 0.2, lp: 3000 } },
     sepulchre: { wind: 0,    surf: 0,    hum: 0.03, chime: 0.02, heat: 0,    events: { shard: [5, 12] },   rev: { len: 4.2, wet: 0.4, lp: 9000 } },
     moongate:  { wind: 0.01, surf: 0,    hum: 0.05, chime: 0.03, heat: 0,    events: { shard: [3, 8] },    rev: { len: 5.0, wet: 0.45, lp: 9000 } },
+    root:      { wind: 0,    surf: 0.02, hum: 0.09, chime: 0.05, heat: 0,    events: { shard: [2, 6], drip: [3, 9] }, rev: { len: 6.0, wet: 0.5, lp: 8000 } },
     none:      { wind: 0.03, surf: 0,    hum: 0.03, chime: 0,    heat: 0,    events: { drip: [2, 6] },     rev: { len: 1.5, wet: 0.2, lp: 4000 } } },
   vol: { master: 0.7, amb: 1.0, sfx: 1.0 },
   init() { if (this.ready) return; const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;

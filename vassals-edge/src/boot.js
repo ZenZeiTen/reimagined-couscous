@@ -11,15 +11,18 @@ import { $ } from './util.js';
 
 export const BOOT = { active: true, state: 'logo', t: 0, seen: false, sel: 1, idle: 0, debounce: 0.25, name: 'Vassal', ITEMS: ['continue', 'new', 'settings'], strike: 0, attractShot: 0, attractT: 0 };
 const bootEl = () => $('#boot'), titleEl = () => $('#title'), fadeEl = () => $('#fadeb');
-function bootShow(which) { for (const k of ['logo', 'title', 'oath']) $('#' + k).classList.toggle('on', k === which); if (which !== 'cine') $('#cine').classList.remove('on'); }
+function bootShow(which) { for (const k of ['logo', 'title', 'oath', 'ending']) $('#' + k).classList.toggle('on', k === which); if (which !== 'cine') $('#cine').classList.remove('on'); }
+/** the title's animation phases live in extra classes; never touch `on` (className = … used to wipe it, hiding the title) */
+function titlePhase(...names) { const t = titleEl(); t.classList.remove('play', 'done', 'idle'); t.classList.add(...names); }
 export function fadeBlack(on) { fadeEl().classList.toggle('on', !!on); }
 export function bootGo(state) { BOOT.state = state; BOOT.t = 0; BOOT.debounce = 0.25; rig.visible = true;
   if (state === 'logo') { bootShow('logo'); if (G.audio.ready) G.audio.tone(55, 40, 2.5, 'sine', 0.35, 0); }
   else if (state === 'prologue') { bootShow(''); BOOT.state = 'prologue'; startCutscene('prologue', () => { BOOT.seen = true; G.mode = 'boot'; bootGo('title'); }); }
-  else if (state === 'title') { bootShow('title'); titleEl().className = 'play'; BOOT.idle = 0; G.audio.setZone('none', true); titleAudio('start'); titleMenu(); }
-  else if (state === 'titleDone') { bootShow('title'); titleEl().className = 'done idle'; BOOT.state = 'title'; BOOT.idle = 0; titleAudio('idle'); titleMenu(); }
+  else if (state === 'title') { bootShow('title'); titlePhase('play'); BOOT.idle = 0; G.audio.setZone('none', true); titleAudio('start'); titleMenu(); }
+  else if (state === 'titleDone') { bootShow('title'); titlePhase('done', 'idle'); BOOT.state = 'title'; BOOT.idle = 0; BOOT.debounce = 0.6; titleAudio('idle'); titleMenu(); }
   else if (state === 'attract') { bootShow(''); BOOT.state = 'attract'; attractShot(0); }
   else if (state === 'oath') { bootShow('oath'); const inp = $('#oathName'); inp.value = BOOT.name; setTimeout(() => inp.focus(), 50); }
+  else if (state === 'ending') { bootShow('ending'); const p = G.player; $('#endName').textContent = p.name || 'Vassal'; $('#endStats').textContent = 'Level ' + p.level + ' · ' + p.kills + ' slain · ' + p.inv.length + ' things carried'; $('#ending').classList.remove('ready'); setTimeout(() => $('#ending').classList.add('ready'), 4000); }
   else if (state === 'play') { startGame(false); }
   else if (state === 'continue') { startGame(true); } }
 function titleMenu() { const cont = titleEl().querySelector('[data-m=continue]'); cont.style.display = hasSave() ? '' : 'none'; if (!hasSave() && BOOT.sel === 0) BOOT.sel = 1; bootRenderMenu(); }
@@ -42,12 +45,13 @@ function bootInputInner(kind) {
   if (st === 'logo') { if (BOOT.t >= 1.5) { fadeBlack(true); setTimeout(() => { fadeBlack(false); bootGo(BOOT.seen ? 'titleDone' : 'prologue'); }, 500); } return; }
   if (st === 'prologue') return;                                   // the cutscene system owns skipping
   if (st === 'attract') { $('#cine').classList.remove('on'); bootGo('titleDone'); return; }
-  if (st === 'title') { if (BOOT.t < 9.5 && titleEl().classList.contains('play')) { titleEl().className = 'done idle'; return; }
+  if (st === 'ending') { if (BOOT.t > 4) { fadeBlack(true); setTimeout(() => { fadeBlack(false); bootGo('titleDone'); }, 600); } return; }
+  if (st === 'title') { if (BOOT.t < 9.5 && titleEl().classList.contains('play')) { titlePhase('done', 'idle'); BOOT.debounce = 0.4; return; }
     const vis = BOOT.ITEMS.filter(k => k !== 'continue' || hasSave());
     if (kind === 'left' || kind === 'right') { let i = vis.indexOf(BOOT.ITEMS[BOOT.sel]); i = (i + (kind === 'left' ? -1 : 1) + vis.length) % vis.length; BOOT.sel = BOOT.ITEMS.indexOf(vis[i]); bootRenderMenu(); G.audio.tone(160, 120, 0.05, 'triangle', 0.08, 0); }
     else if (kind === 'ok') { const m = BOOT.ITEMS[BOOT.sel]; G.audio.tone(110, 80, 1.2, 'sine', 0.25, 0);
-      if (m === 'new') { fadeBlack(true); setTimeout(() => { fadeBlack(false); bootGo('oath'); }, 500); }
-      else if (m === 'continue') { fadeBlack(true); setTimeout(() => { fadeBlack(false); bootGo('continue'); }, 500); }
+      if (m === 'new') { fadeBlack(true); setTimeout(() => { if (G.flags.ending) { location.reload(); return; } fadeBlack(false); bootGo('oath'); }, 500); }
+      else if (m === 'continue') { fadeBlack(true); setTimeout(() => { if (G.flags.ending) { location.reload(); return; } fadeBlack(false); bootGo('continue'); }, 500); }
       else if (m === 'settings') { MENU.tab = MENU.tabs.indexOf('SETTINGS'); MENU.idx = 0; menuToggle(true); } }
     return; }
   if (st === 'oath') { if (kind === 'ok') { BOOT.name = ($('#oathName').value.trim() || 'Vassal').slice(0, 16); G.audio.tone(110, 80, 1.2, 'sine', 0.25, 0); fadeBlack(true); setTimeout(() => { fadeBlack(false); bootGo('play'); }, 600); }
@@ -63,14 +67,14 @@ function startGame(cont) {
 }
 export function bootUpdate(dt) { BOOT.t += dt; BOOT.debounce = Math.max(0, BOOT.debounce - dt);
   if (BOOT.state === 'logo' && BOOT.t >= 3.0 && !BOOT.logoLeft) { BOOT.logoLeft = true; bootInput('any'); }
-  else if (BOOT.state === 'title') { BOOT.idle += dt; if (BOOT.t > 9.5 && titleEl().classList.contains('play')) titleEl().className = 'done idle';
+  else if (BOOT.state === 'title') { BOOT.idle += dt; if (BOOT.t > 9.5 && titleEl().classList.contains('play')) titlePhase('done', 'idle');
     if (BOOT.strike && G.audio.ready && G.audio.ctx.currentTime >= BOOT.strike) { BOOT.strike = 0; titleAudio('strike'); }
     if (BOOT.idle > 45 && !MENU.open) bootGo('attract'); }
   else if (BOOT.state === 'attract') attractUpdate(dt); }
 export function initBoot() {
   $('#title').addEventListener('click', e => { const sp = e.target.closest('[data-m]'); if (sp) { BOOT.sel = BOOT.ITEMS.indexOf(sp.dataset.m); bootRenderMenu(); bootInput('ok'); } else bootInput('any'); });
   $('#oathOk').addEventListener('click', () => bootInput('ok')); $('#oathName').addEventListener('keydown', e => { if (e.code === 'Enter') { e.preventDefault(); bootInput('ok'); } e.stopPropagation(); });
-  $('#logo').addEventListener('pointerdown', () => bootInput('any')); $('#cine').addEventListener('pointerdown', () => { if (BOOT.state === 'attract') bootInput('any'); });
+  $('#logo').addEventListener('pointerdown', () => bootInput('any')); $('#ending').addEventListener('pointerdown', () => bootInput('any')); $('#cine').addEventListener('pointerdown', () => { if (BOOT.state === 'attract') bootInput('any'); });
   document.body.classList.add('boot'); bootEl().classList.add('on'); bootShow('logo');
-  G.hooks.gameEnd = () => { G.mode = 'end'; BOOT.active = true; BOOT.seen = true; document.body.classList.add('boot'); bootEl().classList.add('on'); bootGo('titleDone'); G.player = makePlayer(); recalc(); G.player.hp = G.player.hpMax; G.player.stam = G.player.stamMax; G.player.mp = G.player.mpMax; };
+  G.hooks.gameEnd = () => { G.mode = 'end'; BOOT.active = true; BOOT.seen = true; document.body.classList.add('boot'); bootEl().classList.add('on'); bootGo('ending'); };
 }

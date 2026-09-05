@@ -2,7 +2,7 @@
 /**
  * Scripted end-to-end playthrough of the key-lock chain, headless. Drives the game through window.__vareth:
  * take the Cistern Key (bishop rises) → Aldous (seal) → shrine → clapper → bell (cloister drains) → Moon Key (King wakes)
- * → slay the King (throne wall opens) → Moon Gate (ending). Exits non-zero if any step leaves the wrong state.
+ * → slay the King (throne wall opens) → Moon Gate (opens) → the Root → the Heart (ending) → title. Exits non-zero if any step leaves the wrong state.
  *   node tools/playthrough.cjs
  */
 const path = require('path'); const fs = require('fs'); const http = require('http');
@@ -22,10 +22,11 @@ const fails = []; const check = (name, ok, extra) => { console.log((ok ? 'ok   '
   const waitState = (fn, label, ms) => page.waitForFunction(fn, null, { timeout: ms || 30000 }).catch(() => { throw new Error('timeout waiting for ' + label); });
   await waitState(() => window.__vareth && window.__vareth.BOOT.state === 'prologue', 'prologue');
   await waitState(() => window.__vareth.CS.total > 2.2, 'skip grace'); await page.keyboard.press('Space');
-  await waitState(() => window.__vareth.BOOT.state === 'title', 'title'); await page.waitForTimeout(600);
-  await page.keyboard.press('Space'); await page.waitForTimeout(600);
-  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; }   // New Oath
-  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await page.waitForTimeout(700);
+  const ready = () => waitState(() => window.__vareth.BOOT.debounce <= 0, 'debounce');   // boot input is debounced in game time, which runs slower than wall time headless
+  await waitState(() => window.__vareth.BOOT.state === 'title', 'title'); await ready();
+  await page.keyboard.press('Space'); await ready();
+  for (let i = 0; i < 4; i++) { await page.keyboard.press('Enter'); const ok = await page.waitForFunction(() => window.__vareth.BOOT.state === 'oath', null, { timeout: 2500 }).then(() => true, () => false); if (ok) break; await ready(); }   // New Oath
+  await waitState(() => window.__vareth.BOOT.state === 'oath', 'oath'); await ready(); await page.waitForTimeout(200);
   await page.keyboard.press('Enter');
   await waitState(() => window.__vareth.G.mode === 'play' && !window.__vareth.BOOT.active, 'play'); await page.waitForTimeout(600);
   const ev = (fn, arg) => page.evaluate(fn, arg);
@@ -65,10 +66,19 @@ const fails = []; const check = (name, ok, extra) => { console.log((ok ? 'ok   '
   check('king dead + gate open', s.flags.king_dead && s.enemies.king === 'DEAD');
   const wallOpen = await ev(() => window.__vareth.G.enemies.find(e => e.type === 'king').state === 'DEAD' && !window.__vareth.G.flags.__x); check('throne wall opened (flag)', wallOpen);
   await page.waitForTimeout(6000); s = await st(); check('king loot dropped', (await ev(() => window.__vareth.G.interact.some(e => e.label === 'Take Astraea’s Edge' && !e.done()))));
-  /* 7. the Moon Gate ends the game */
-  await tp(-10, -9, -22, Math.PI); await page.waitForTimeout(300); check('use moon gate', await use('The Moon Gate')); await page.waitForTimeout(500); s = await st(); check('ending cutscene runs', s.cs); await skip(); await page.waitForTimeout(500);
-  s = await st(); check('ending flag + back to title', s.flags.ending && s.mode === 'end', s.mode);
-  /* 8. save/load round trip: rest at a crystal (saves), scramble the sheet, load, compare */
+  /* 7. the Moon Gate opens onto the Root of Val-Azaer */
+  await tp(-10, -9, -22, Math.PI); await page.waitForTimeout(300); check('use moon gate', await use('The Moon Gate')); await page.waitForTimeout(500); s = await st(); check('gate_open cutscene runs', s.cs); await skip(); await page.waitForTimeout(500);
+  s = await st(); check('moon seal opened + back in play', s.flags.moongate_open && s.mode === 'play', s.mode);
+  const sealGone = await ev(() => { const m = window.__vareth.MECH.moonSeal; return m.userData.box.disabled && !m.visible; }); check('moon seal collider disabled', sealGone);
+  /* 8. the Root: rest crystal, the Heart, the ending screen */
+  await tp(-10, -9, -33, Math.PI); await page.waitForTimeout(400); s = await ev(() => { const V = window.__vareth, p = V.G.player, z = V.zoneAt(p.x, p.y, p.z); return { zone: z && z.id, y: p.y }; }); check('entered the Root zone', s.zone === 'root', JSON.stringify(s));
+  await tp(-19, -9, -38, -Math.PI / 2); await page.waitForTimeout(300); check('rest at the last crystal', await use('Rest at the crystal'));
+  await tp(-10, -9, -41.5, Math.PI); await page.waitForTimeout(300); check('touch the Heart', await use('Touch the Heart of Val-Azaer')); await page.waitForTimeout(500); s = await st(); check('ending cutscene runs', s.cs); await skip(); await page.waitForTimeout(800);
+  s = await st(); check('ending flag + end mode', s.flags.ending && s.mode === 'end', s.mode);
+  let bs = await ev(() => ({ st: window.__vareth.BOOT.state, on: document.querySelector('#ending').classList.contains('on'), boot: document.querySelector('#boot').classList.contains('on') })); check('ending screen shown', bs.st === 'ending' && bs.on && bs.boot, JSON.stringify(bs));
+  await waitState(() => window.__vareth.BOOT.t > 4.1, 'ending hold'); await page.keyboard.press('Space'); await waitState(() => window.__vareth.BOOT.state === 'title', 'title after ending'); await page.waitForTimeout(300);
+  bs = await ev(() => ({ st: window.__vareth.BOOT.state, on: document.querySelector('#title').classList.contains('on'), done: document.querySelector('#title').classList.contains('done'), vis: getComputedStyle(document.querySelector('#title')).display })); check('title screen visible after ending', bs.st === 'title' && bs.on && bs.done && bs.vis !== 'none', JSON.stringify(bs));
+  /* 9. save/load round trip: rest at a crystal (saves), scramble the sheet, load, compare */
   const before = await ev(() => { const G = window.__vareth.G; G.mode = 'play'; G.player.spawn = { x: -26, z: 4.5, yaw: 0, y: 0 }; const ok = G.hooks.save(); return { ok, inv: G.player.inv.map(e => e.id + 'x' + e.qty).join(','), lvl: G.player.level, spells: G.player.spells.join(',') }; });
   check('save written', before.ok);
   const after = await ev(() => { const G = window.__vareth.G; G.player.inv = []; G.player.spells = []; G.player.x = 0; G.player.z = 0; const ok = G.hooks.load(); return { ok, inv: G.player.inv.map(e => e.id + 'x' + e.qty).join(','), spells: G.player.spells.join(','), x: G.player.x, z: G.player.z, flags: Object.keys(G.flags).length }; });

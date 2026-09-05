@@ -83,6 +83,11 @@
   #oath p { color:#B8C4D8; letter-spacing:.08em; font-size:clamp(13px,1.8vw,18px); max-width:70ch; line-height:1.7; }
   #oath input { font:inherit; font-size:clamp(16px,2.4vw,24px); letter-spacing:.2em; text-align:center; background:transparent; border:none; border-bottom:1px solid #9FB3D1; color:#F2F0E6; outline:none; padding:6px 12px; width:min(60vw,320px); margin-top:22px; }
   #oath .ok { margin-top:26px; color:#5E6F8F; letter-spacing:.2em; cursor:pointer; font-size:14px; } #oath .ok.sel { color:#B8C4D8; }
+  #ending { position:absolute; inset:0; background:#000; display:none; place-items:center; text-align:center; } #ending.on { display:grid; }
+  #ending h1 { font-weight:normal; letter-spacing:.4em; font-size:clamp(18px,3vw,30px); color:#F2F0E6; margin:0 0 18px; }
+  #ending p { color:#B8C4D8; letter-spacing:.08em; font-size:clamp(13px,1.7vw,17px); line-height:1.8; max-width:64ch; margin:0 auto; }
+  #ending .stats { color:#5E6F8F; margin-top:22px; font-size:12px; letter-spacing:.2em; }
+  #ending .go { margin-top:34px; color:#5E6F8F; letter-spacing:.3em; font-size:11px; opacity:0; transition:opacity 1.5s; } #ending.ready .go { opacity:1; }
   #fadeb { position:fixed; inset:0; background:#000; opacity:0; pointer-events:none; z-index:11; transition:opacity .5s; } #fadeb.on { opacity:1; }
   @keyframes rise { from { transform:translate(-50%,calc(-50% + 60px)); opacity:0; } to { transform:translate(-50%,-50%); opacity:1; } }
   @keyframes fade { to { opacity:1; } } @keyframes reveal { from { clip-path:inset(0 100% 0 0); } to { clip-path:inset(0 0 0 0); } }
@@ -155,6 +160,7 @@
     <div class="menu"><span data-m="continue" style="display:none">Continue</span><span data-m="new" class="sel">New Oath</span><span data-m="settings">Settings</span></div>
     <div class="credit">© 2026 Pale Court · a King’s Field II successor · Retro Forge Engine · three.js r185</div>
   </div>
+  <div id="ending"><div><h1>THE OATH IS KEPT</h1><p>The Heart of Val-Azaer goes quiet under <span id="endName">Vassal</span>’s hand. The knights stop counting. The bell, for once, has nothing to say.<br>The sea takes back the shore it lent you, and does not ask for a name.</p><div class="stats" id="endStats"></div><div class="go">any key · tap · button &nbsp;—&nbsp; return to the title</div></div></div>
   <div id="oath"><div><p>Speak the name you swore under.<br>The kingdom will not hear it. The sea might.</p><input id="oathName" maxlength="16" value="Vassal" spellcheck="false" autocomplete="off"><div class="ok sel" id="oathOk">SWEAR</div></div></div>
 </div>
 <div id="fadeb"></div>

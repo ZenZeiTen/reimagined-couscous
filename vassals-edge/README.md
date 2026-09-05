@@ -3,8 +3,8 @@
 A browser dungeon crawler in the King's Field II line, remade on **three.js r185** with the Retro Forge PSX pipeline,
 with a **Blender model pipeline** for every creature, weapon, armour piece and key item.
 
-Seven seamless regions, one key-lock chain, eight enemy archetypes and a boss, five NPCs with branching dialogue,
-a trader and a forge, seven in-engine cutscenes, sixteen weapons and armour pieces, and a save system.
+Eight seamless regions, one key-lock chain, eight enemy archetypes and a boss, five NPCs with branching dialogue,
+a trader and a forge, eight in-engine cutscenes, a proper title, ending and settings flow, sixteen weapons and armour pieces, and a save system.
 
 ```
 npx http-server . -p 8080 -c-1        # or: python3 -m http.server 8080
@@ -32,12 +32,14 @@ and the snap off (the accessibility escape hatch), and `prefers-reduced-motion` 
 
 **Regions.** The Ash-Girt Shore (belltower, forge, pier, wreck, cove) · the Tide-Warden's Shrine (new) · the Sunken
 Cloister of Saint Vael (with the drained alcove, new) · the High Citadel lower gallery · the Iron Cistern · the
-Crystal Sepulchre · the Moon Gate hall (new).
+Crystal Sepulchre · the Moon Gate hall (new) · the Root of Val-Azaer (new): the island's core, beyond the gate.
 
 **The chain.** Cistern Key on the drowned bishop (he rises when you take it) → Ser Aldous gives the Tide-Warden's
 Seal → the Seal opens the Shrine (Bell Clapper, Warden's Spear, Seer's Tincture) → the Clapper rings the bell, which
 drains the Cloister (Warden's Plate, Moonfall scroll) → the Cistern door, the lift, the Sepulchre → the Moon-Sealed
-Key wakes the Hollowed King → his fall opens the throne wall → the Moon Gate ends the game.
+Key wakes the Hollowed King → his fall opens the throne wall → the Moon Key dissolves the seal in the Moon Gate → the
+passage down to the Root (a last save crystal, wisps, a bowman) → touching the Heart of Val-Azaer ends the game, with
+an ending card that returns you to the title.
 
 **NPCs.** Cinder the Seer (lore, the Ember Lance scroll, a hood after the bell) · Garrick the Blacksmith (Ember
 Bread, a forge: Moon-Veined Ore → +5 attack per heat, five times) · Old Mael the Tide-Warden (a ghost; trades

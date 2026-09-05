@@ -55,7 +55,9 @@ export function buildInteractables() {
         if (invEntry('bell_clapper')) { MECH.bell.userData.parts.clapper.visible = true; if (G.hooks.cutscene) G.hooks.cutscene('bell'); } else G.say('A rope, and above it a bell with nothing inside to strike. It hangs silent on purpose.', 4); }, done: () => G.flags.bell_rung },
     { x: -18.4, y: -3, z: -31.6, r: 1.4, label: 'The sealed door', on() { G.say('A door in the south wall, wedged shut by the weight of the water behind it.', 4); }, done: () => G.flags.cloister_drained },
     { x: -10, y: -9, z: -12.4, r: 1.6, label: 'The King', on() { if (G.hooks.talk) G.hooks.talk('king_sleeping'); }, done: () => G.flags.king_woke },
-    { x: -10, y: -9, z: -23.4, r: 2.2, label: 'The Moon Gate', on() { if (invEntry('moon_key')) { if (G.hooks.cutscene) G.hooks.cutscene('ending'); } else G.say('Quartz, grown into an arch. A keyhole shaped like the moon, and the moon is not here.', 4); }, done: () => G.flags.ending }
+    { x: -10, y: -9, z: -23.4, r: 2.2, label: 'The Moon Gate', on() { if (invEntry('moon_key')) { if (G.hooks.cutscene) G.hooks.cutscene('gate_open'); } else G.say('Quartz, grown into an arch, sealed with a pane of living quartz. A keyhole shaped like the moon, and the moon is not here.', 4); }, done: () => G.flags.moongate_open },
+    rest(-20, -9, -38, -19, -38, -Math.PI / 2, 'The last crystal. Whatever hums ahead, it hums louder here. (Saved.)'),
+    { x: -10, y: -9, z: -43.2, r: 2.4, label: 'Touch the Heart of Val-Azaer', on() { if (G.hooks.cutscene) G.hooks.cutscene('ending'); }, done: () => G.flags.ending }
   );
 }
 export let interactTarget = null;
