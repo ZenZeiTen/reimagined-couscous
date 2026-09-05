@@ -1,0 +1,60 @@
+{
+  "skill_name": "raycaster-engine",
+  "evals": [
+    {
+      "id": 0,
+      "name": "build-from-scratch",
+      "prompt": "I've got a game jam this weekend and I want to build a little Wolfenstein-ish maze game in TypeScript that runs in the browser. Nothing fancy \u2014 a maze you can walk around in first person, textured walls (I don't have any art, so whatever you can generate), mouse look, and a floor and ceiling that aren't just flat grey. Vite is fine for the build. Can you set the project up and get something I can actually walk around in?",
+      "expected_output": "A working Vite + TypeScript raycaster project: DDA raycasting with perpendicular distance, textured walls, floor/ceiling casting, collision, mouse look, procedural textures. Should build/typecheck.",
+      "files": [],
+      "expectations": [
+        "Wall distance is perpendicular to the camera plane (DDA sideDist form or an explicit cosine correction), not raw Euclidean distance to the hit point",
+        "Pixel writes into a Uint32Array view of ImageData use little-endian (ABGR) byte order or go through a helper that handles endianness; per-byte RGBA writes also count",
+        "Floor and ceiling are textured or shaded per row rather than filled with two flat colours",
+        "Wall textures are generated in code, so the game runs with no external image files",
+        "Player collision resolves the X and Y axes separately so the player slides along walls instead of sticking",
+        "The simulation is frame-rate independent (fixed-timestep accumulator or delta-time scaling)",
+        "Mouse look is implemented using pointer lock",
+        "The project typechecks or builds successfully and the command output is shown"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "debug-broken-raycaster",
+      "prompt": "Attached is renderer.js from my little maze game and something is off with it. When I stand in a corridor the walls kind of bulge outward at the edges of the screen instead of staying straight, and the enemy sprites show up even when they're behind a wall. Also the whole thing has a weird blue tint that I can't track down \u2014 my brick texture is definitely reddish in the source PNG. Can you figure out what's going on and fix it?",
+      "expected_output": "Identifies fisheye (Euclidean distance / uniform angle sweep instead of perpendicular distance), missing z-buffer test for sprites, and the RGBA byte order bug on little-endian. Provides fixes.",
+      "files": [
+        "evals/files/renderer.js"
+      ],
+      "expectations": [
+        "Diagnoses the bulging walls as fisheye caused by using Euclidean hit distance (and/or a uniform angular sweep) instead of perpendicular distance to the camera plane",
+        "Fixes the fisheye by computing perpendicular distance, either the DDA sideDist form or an explicit cosine correction against the view direction",
+        "Diagnoses the see-through-wall sprites as a missing per-column depth comparison against wall distances",
+        "Adds a z-buffer of per-column wall distances and skips sprite columns whose depth is greater",
+        "Diagnoses the blue tint as wrong byte order when writing a Uint32Array view of ImageData on little-endian hardware",
+        "Fixes the colour packing to ABGR order, or writes the RGBA bytes individually",
+        "The delivered renderer file is valid JavaScript that parses",
+        "Explains each root cause rather than only listing the edits"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "grid-locked-dungeon-crawler",
+      "prompt": "I want to make a slow dark dungeon crawler in TypeScript, the old King's Field / Eye of the Beholder kind of thing where you move square by square rather than sliding around freely. So: step one tile at a time, turn in 90 degree increments, and it should be really dark more than a couple of tiles out so you feel boxed in. I also want doors that need a key to open and a chest or two. Can you build the movement, the lighting and the door/chest interaction?",
+      "expected_output": "Grid-locked movement with tweened steps and 90-degree snap turns, exponential distance darkness, doors that clear their wall tile and require a key, chests with contents, interaction check for what is in front of the player.",
+      "files": [],
+      "expectations": [
+        "The player is locked to tile centres with a discrete facing rather than moving continuously",
+        "A step is an animated one-tile transition over time, not an instant teleport",
+        "Turning is in 90-degree increments and the camera angle interpolates smoothly through the turn",
+        "New movement input is refused while a step or turn is still in progress",
+        "Distance darkness uses an exponential or similarly steep falloff so geometry a few tiles out is near-black",
+        "Opening a door modifies the wall grid, so rendering, collision and line of sight all update from one change",
+        "A locked door requires a matching key from the player's inventory",
+        "There is an explicit check of what occupies the cell in front of the player, driving an interaction prompt",
+        "A chest yields its contents only once",
+        "The project typechecks or builds successfully and the command output is shown"
+      ]
+    }
+  ]
+}
