@@ -201,3 +201,27 @@ describe('SpriteRenderer', () => {
     for (let i = 0; i < fb2.data.length; i++) expect(fb2.data[i]).toBe(before[i]);
   });
 });
+
+describe('FloorCeilingRenderer sky', () => {
+  it('rebuilds the gradient from the configured endpoints', async () => {
+    const { FloorCeilingRenderer } = await import('../src/renderer/FloorCeilingRenderer');
+    const fc = new FloorCeilingRenderer(16);
+    const top = packRGBA(10, 20, 30);
+    const bottom = packRGBA(200, 150, 100);
+    fc.setSky(top, bottom);
+    expect(fc.skyTop).toBe(top);
+    expect(fc.skyBottom).toBe(bottom);
+    // Render into a map with an open-sky ceiling and confirm the top row matches the new top colour.
+    const map = parseAsciiMap({ rows: ['###', '#P#', '###'], legend: { ...legend, P: { wall: 0, floor: 1, ceiling: 0, playerStart: true } } });
+    const cam = new Camera(Math.PI / 3);
+    cam.setPosition(1.5, 1.5);
+    cam.setAngle(0);
+    const fb = fakeFramebuffer(8, 16);
+    const textures = new TextureRegistry();
+    textures.register(1, brickTexture(8));
+    fc.render(fb, cam, map, textures, new Shading(20, 1, 1));
+    expect(unpackR(fb.data[0]!)).toBe(10);
+    expect(unpackG(fb.data[0]!)).toBe(20);
+    expect(unpackB(fb.data[0]!)).toBe(30);
+  });
+});

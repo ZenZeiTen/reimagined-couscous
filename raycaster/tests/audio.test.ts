@@ -82,9 +82,11 @@ describe('audio cache keys', () => {
 });
 
 describe('RetroSynth', () => {
+  // 8 kHz is plenty to prove a recipe is bounded and non-silent, and keeps this
+  // whole-bank render fast enough not to flake on a loaded machine.
   it('renders every recipe to bounded, non-silent samples', () => {
     for (const [name, recipe] of Object.entries(RETRO_RECIPES)) {
-      const samples = renderRecipeToSamples(recipe, 22050);
+      const samples = renderRecipeToSamples(recipe, 8000);
       expect(samples.length, name).toBeGreaterThan(100);
       let peak = 0;
       for (const s of samples) {

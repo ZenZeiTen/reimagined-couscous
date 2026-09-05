@@ -3,7 +3,7 @@ import type { Camera } from './Camera';
 import type { GameMap } from '../world/GameMap';
 import type { Texture, TextureRegistry } from './Texture';
 import type { Shading } from './Shading';
-import { packRGBA, shadePixel } from './Color';
+import { packRGBA, shadePixel, unpackR, unpackG, unpackB } from './Color';
 
 /**
  * Horizontal-scanline floor and ceiling casting. For every screen row the
@@ -14,8 +14,8 @@ import { packRGBA, shadePixel } from './Color';
  * use different surfaces. Ceiling id 0 renders a sky gradient instead.
  */
 export class FloorCeilingRenderer {
-  skyTop = packRGBA(20, 24, 48);
-  skyBottom = packRGBA(90, 70, 110);
+  private skyTopColor = packRGBA(20, 24, 48);
+  private skyBottomColor = packRGBA(90, 70, 110);
   private readonly skyRows: Uint32Array;
   private cacheVersion = -1;
   private cacheRegistry: TextureRegistry | null = null;
@@ -48,14 +48,36 @@ export class FloorCeilingRenderer {
     this.cacheVersion = textures.version;
   }
 
+  /**
+   * Set the sky gradient endpoints and rebuild the per-row table. The colours
+   * are only reachable through this method so the cached rows can never drift
+   * out of sync with them.
+   */
+  setSky(top: number, bottom: number): void {
+    this.skyTopColor = top;
+    this.skyBottomColor = bottom;
+    this.rebuildSky(this.skyRows.length);
+  }
+
+  get skyTop(): number {
+    return this.skyTopColor;
+  }
+
+  get skyBottom(): number {
+    return this.skyBottomColor;
+  }
+
   private rebuildSky(height: number): void {
     const sr = this.skyRows;
+    const r0 = unpackR(this.skyTopColor);
+    const g0 = unpackG(this.skyTopColor);
+    const b0 = unpackB(this.skyTopColor);
+    const r1 = unpackR(this.skyBottomColor);
+    const g1 = unpackG(this.skyBottomColor);
+    const b1 = unpackB(this.skyBottomColor);
     for (let y = 0; y < height; y++) {
-      const t = y / height;
-      const r = (20 + (90 - 20) * t) | 0;
-      const g = (24 + (70 - 24) * t) | 0;
-      const b = (48 + (110 - 48) * t) | 0;
-      sr[y] = packRGBA(r, g, b);
+      const t = height > 1 ? y / (height - 1) : 0;
+      sr[y] = packRGBA((r0 + (r1 - r0) * t) | 0, (g0 + (g1 - g0) * t) | 0, (b0 + (b1 - b0) * t) | 0);
     }
   }
 
@@ -98,7 +120,7 @@ export class FloorCeilingRenderer {
       if (p === 0) {
         // Row exactly at the horizon has infinite distance: paint sky/fog.
         const idx = y * w;
-        const c = shadePixel(isFloor ? this.skyBottom : skyRows[Math.min(y, h - 1)]!, (shading.minFactor * 256) | 0);
+        const c = shadePixel(isFloor ? this.skyBottomColor : skyRows[Math.min(y, h - 1)]!, (shading.minFactor * 256) | 0);
         for (let x = 0; x < w; x++) data[idx + x] = c;
         continue;
       }
@@ -110,7 +132,7 @@ export class FloorCeilingRenderer {
       const factor = shading.factorFor(rowDistance);
       const rowIdx = y * w;
       const skyColor = skyRows[Math.min(Math.max(y, 0), h - 1)]!;
-      const fogColor = shadePixel(this.skyBottom, (shading.minFactor * 256) | 0);
+      const fogColor = shadePixel(this.skyBottomColor, (shading.minFactor * 256) | 0);
       const layer = isFloor ? floors : ceilings;
 
       for (let x = 0; x < w; x++) {
