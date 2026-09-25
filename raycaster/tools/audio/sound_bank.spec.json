@@ -1,0 +1,144 @@
+{
+  "version": 1,
+  "defaultVoiceId": "JBFqnCBsd6RMkjVDRZzb",
+  "defaultModelId": "eleven_multilingual_v2",
+  "outputFormat": "mp3_44100_128",
+  "sounds": {
+    "enemy_alert": {
+      "prompt": "Retro arcade monster alert growl, short, lo-fi 8-bit",
+      "durationSeconds": 0.7,
+      "promptInfluence": 0.4
+    },
+    "enemy_attack": {
+      "prompt": "Retro arcade monster swipe attack, short whoosh with a growl",
+      "durationSeconds": 0.6,
+      "promptInfluence": 0.4
+    },
+    "enemy_hurt": {
+      "prompt": "Retro arcade monster pain grunt, short, lo-fi",
+      "durationSeconds": 0.5,
+      "promptInfluence": 0.4
+    },
+    "enemy_die": {
+      "prompt": "Retro arcade monster death scream fading out, 8-bit style",
+      "durationSeconds": 1.2,
+      "promptInfluence": 0.4
+    },
+    "player_hurt": {
+      "prompt": "Retro video game player hurt grunt, muffled thud, lo-fi",
+      "durationSeconds": 0.5,
+      "promptInfluence": 0.5
+    },
+    "pickup_health": {
+      "prompt": "Retro video game health pickup, rising bright chime, 8-bit",
+      "durationSeconds": 0.7,
+      "promptInfluence": 0.6
+    },
+    "footstep": {
+      "prompt": "Single slow footstep on wet dungeon stone, echoing, retro game",
+      "durationSeconds": 0.4,
+      "promptInfluence": 0.5
+    },
+    "level_start": {
+      "prompt": "Retro video game level start jingle, short 8-bit fanfare",
+      "durationSeconds": 1.5,
+      "promptInfluence": 0.5
+    },
+    "player_die": {
+      "prompt": "Retro video game player death, descending 8-bit tones, dramatic",
+      "durationSeconds": 1.6,
+      "promptInfluence": 0.5
+    },
+    "ambient_dungeon": {
+      "prompt": "Deep ominous dungeon ambience, low drone, distant dripping water, faint wind, seamless loop",
+      "durationSeconds": 12,
+      "promptInfluence": 0.4
+    },
+    "door_open": {
+      "prompt": "Heavy stone dungeon door grinding open, retro game sound",
+      "durationSeconds": 1.2,
+      "promptInfluence": 0.5
+    },
+    "door_close": {
+      "prompt": "Heavy stone dungeon door slamming shut, retro game sound",
+      "durationSeconds": 0.9,
+      "promptInfluence": 0.5
+    },
+    "door_locked": {
+      "prompt": "Rattling a locked iron door handle, short, retro game",
+      "durationSeconds": 0.5,
+      "promptInfluence": 0.5
+    },
+    "chest_open": {
+      "prompt": "Wooden treasure chest creaking open with a magical sparkle, retro game",
+      "durationSeconds": 1.0,
+      "promptInfluence": 0.5
+    },
+    "lever": {
+      "prompt": "Heavy iron lever clunk followed by a distant stone rumble, retro game",
+      "durationSeconds": 1.2,
+      "promptInfluence": 0.5
+    },
+    "sword_swing": {
+      "prompt": "Sword whoosh swing through air, short, retro game",
+      "durationSeconds": 0.4,
+      "promptInfluence": 0.5
+    },
+    "sword_hit": {
+      "prompt": "Sword striking flesh with a wet thud, short, retro game",
+      "durationSeconds": 0.4,
+      "promptInfluence": 0.5
+    },
+    "spell_cast": {
+      "prompt": "Magic fire bolt spell cast, rising magical whoosh, retro game",
+      "durationSeconds": 0.6,
+      "promptInfluence": 0.5
+    },
+    "spell_hit": {
+      "prompt": "Magic fire bolt impact explosion, short, retro game",
+      "durationSeconds": 0.6,
+      "promptInfluence": 0.5
+    },
+    "blocked": {
+      "prompt": "Soft bump into a stone wall, very short, muffled",
+      "durationSeconds": 0.3,
+      "promptInfluence": 0.5
+    },
+    "potion": {
+      "prompt": "Drinking a potion, gulp with a magical shimmer, retro game",
+      "durationSeconds": 0.7,
+      "promptInfluence": 0.5
+    },
+    "pickup_mana": {
+      "prompt": "Crystal mana pickup, bright magical chime, retro game",
+      "durationSeconds": 0.6,
+      "promptInfluence": 0.6
+    }
+  },
+  "voices": {
+    "intro": {
+      "text": "The catacombs of Verdis. Something below still breathes. Tread carefully, adventurer.",
+      "style": "old sage, whispering"
+    },
+    "enemy_taunt": {
+      "text": "Another one comes to die in the dark.",
+      "style": "guttural undead voice"
+    },
+    "low_health": {
+      "text": "Your wounds are grave.",
+      "style": "old sage, whispering"
+    },
+    "low_mana": {
+      "text": "The arcane well runs dry.",
+      "style": "old sage, whispering"
+    },
+    "all_clear": {
+      "text": "The dead are still. The catacombs are yours.",
+      "style": "old sage, whispering"
+    },
+    "player_dead": {
+      "text": "Darkness takes you.",
+      "style": "old sage, whispering"
+    }
+  }
+}

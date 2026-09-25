@@ -1,0 +1,23 @@
+{
+  "name": "example",
+  "image": "example.png",
+  "frameWidth": 64,
+  "frameHeight": 64,
+  "directions": 8,
+  "origin": { "x": 0.5, "y": 0.93 },
+  "worldHeight": 0.9,
+  "animations": {
+    "idle": { "fps": 8, "loop": true, "frameCount": 1 }
+  },
+  "frames": [
+    { "animation": "idle", "frame": 0, "direction": 0, "x": 0, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 1, "x": 64, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 2, "x": 128, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 3, "x": 192, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 4, "x": 256, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 5, "x": 320, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 6, "x": 384, "y": 0, "w": 64, "h": 64 },
+    { "animation": "idle", "frame": 0, "direction": 7, "x": 448, "y": 0, "w": 64, "h": 64 }
+  ],
+  "generator": { "tool": "sprite_baker.py", "version": 1, "convention": "clockwise-from-front" }
+}
