@@ -95,6 +95,12 @@ def bake_directional_sprites(output_dir, num_angles=8, resolution=128, name=None
         "frames": [],
     }
     angle_step = 360.0 / num_angles
+    # `rotation_euler` is ignored for objects in QUATERNION / AXIS_ANGLE mode,
+    # which would silently render the same view for every angle. Switch to an
+    # Euler mode for the bake and restore the original mode afterwards.
+    original_rotation_mode = obj.rotation_mode
+    if original_rotation_mode in {"QUATERNION", "AXIS_ANGLE"}:
+        obj.rotation_mode = "XYZ"
     original_rotation_z = obj.rotation_euler[2]
     report(f"Starting bake for '{model_name}' ({num_angles} angles)...")
 
@@ -115,6 +121,7 @@ def bake_directional_sprites(output_dir, num_angles=8, resolution=128, name=None
     finally:
         # Restore the object and render settings whatever happened.
         obj.rotation_euler[2] = original_rotation_z
+        obj.rotation_mode = original_rotation_mode
         render.film_transparent = saved["film_transparent"]
         render.resolution_x = saved["resolution_x"]
         render.resolution_y = saved["resolution_y"]

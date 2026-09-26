@@ -6,8 +6,10 @@ The engine resolves every sound through four layers, in order:
    `bake_sound_bank.mjs`. This is the shipping path; no key reaches browsers.
 2. **Persistent cache** — the browser Cache Storage API, keyed by a SHA-256 of
    the generation request.
-3. **Live ElevenLabs generation** — only when `VITE_ELEVENLABS_API_KEY` is set
-   at build time. Useful during development, never for production builds.
+3. **Live ElevenLabs generation** — only in development builds (`vite dev`)
+   and only when `VITE_ELEVENLABS_API_KEY` is set. Production builds ignore
+   the key and log a warning, because Vite would otherwise inline it into the
+   bundle shipped to every player.
 4. **RetroSynth** — procedural chip-tune style fallbacks rendered offline with
    Web Audio, so the game is always audible.
 

@@ -73,6 +73,8 @@ export class Game implements GameHost {
   private lowHealthWarned = false;
   private lowManaWarned = false;
   private ambient: LoopHandle | null = null;
+  /** Level-start jingle + intro line wait for the first user gesture that unlocks audio. */
+  private pendingIntro = false;
   private torchPhase = 0;
   /** Current interaction target and prompt, refreshed every tick. */
   private focus: Interactable | null = null;
@@ -162,8 +164,7 @@ export class Game implements GameHost {
     this.lowHealthWarned = false;
     this.lowManaWarned = false;
     this.message(this.map.name.toUpperCase(), 4);
-    this.audio.play('level_start');
-    this.audio.speak('intro');
+    this.pendingIntro = true;
     this.startAmbience();
   }
 
@@ -224,6 +225,11 @@ export class Game implements GameHost {
     }
 
     if (!this.ambient?.isActive && this.audio.isUnlocked) this.startAmbience();
+    if (this.pendingIntro && this.audio.isUnlocked) {
+      this.pendingIntro = false;
+      this.audio.play('level_start');
+      this.audio.speak('intro');
+    }
 
     this.player.update(dt, input, this.map, this.entities, this.fb.height);
     this.handleActions();

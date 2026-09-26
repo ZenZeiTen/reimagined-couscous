@@ -129,6 +129,14 @@ describe('SpriteSheet metadata', () => {
     expect(sheet.rectY[idx]).toBe(12);
   });
 
+  it('falls back to the first animation but keeps the direction for unknown animations', () => {
+    // A single-pose directional sheet asked for "walk" should still turn.
+    const idx = sheet.frameIndex('walk', 3, 2);
+    expect(idx).toBe(sheet.frameIndex('idle', 0, 2));
+    expect(sheet.rectX[idx]).toBe(8);
+    expect(sheet.rectY[idx]).toBe(0);
+  });
+
   it('follows the clockwise-from-front direction convention', () => {
     // Sprite at origin facing +x. Viewer in front (+x) sees direction 0.
     expect(sheet.directionFor(0, 0, 0, 5, 0)).toBe(0);

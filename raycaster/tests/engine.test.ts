@@ -25,6 +25,62 @@ describe('Engine fixed-step loop', () => {
   });
 });
 
+describe('Engine visibility pausing', () => {
+  /** Minimal `document` stand-in: captures the visibilitychange listener and exposes `hidden`. */
+  function withFakeDocument<T>(fn: (doc: { hidden: boolean; fire(): void }) => T): T {
+    let listener: (() => void) | undefined;
+    const doc = {
+      hidden: false,
+      addEventListener: (_type: string, cb: () => void) => {
+        listener = cb;
+      },
+      removeEventListener: () => undefined,
+      fire: () => listener?.(),
+    };
+    (globalThis as { document?: unknown }).document = doc;
+    try {
+      return fn(doc);
+    } finally {
+      delete (globalThis as { document?: unknown }).document;
+    }
+  }
+
+  it('pauses on hide and resumes on show when it owns the pause', () => {
+    withFakeDocument((doc) => {
+      const engine = new Engine({ update: () => undefined, render: () => undefined });
+      expect(engine.isPaused).toBe(false);
+      doc.hidden = true;
+      doc.fire();
+      expect(engine.isPaused).toBe(true);
+      doc.hidden = false;
+      doc.fire();
+      expect(engine.isPaused).toBe(false);
+      engine.dispose();
+    });
+  });
+
+  it('never resumes a pause the game made explicitly', () => {
+    withFakeDocument((doc) => {
+      const engine = new Engine({ update: () => undefined, render: () => undefined });
+      engine.pause(); // e.g. pointer lock lost → pause menu shown
+      doc.hidden = true;
+      doc.fire();
+      doc.hidden = false;
+      doc.fire();
+      expect(engine.isPaused).toBe(true);
+      // An explicit pause while hidden also sticks after the tab returns.
+      doc.hidden = true;
+      engine.resume();
+      doc.fire();
+      engine.pause();
+      doc.hidden = false;
+      doc.fire();
+      expect(engine.isPaused).toBe(true);
+      engine.dispose();
+    });
+  });
+});
+
 describe('Clock', () => {
   it('clamps large deltas', () => {
     let t = 0;

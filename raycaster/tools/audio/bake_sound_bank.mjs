@@ -131,6 +131,13 @@ async function main() {
 
   const failures = [];
   let index = 0;
+  // Workers run concurrently; chain manifest writes so two `writeFile`s to the
+  // same path never interleave and leave a torn manifest.json behind.
+  let manifestWrite = Promise.resolve();
+  const saveManifest = () => {
+    manifestWrite = manifestWrite.then(() => writeFile(manifestPath, JSON.stringify(manifest, null, 2)));
+    return manifestWrite;
+  };
   const worker = async () => {
     while (index < todo.length) {
       const j = todo[index++];
@@ -140,7 +147,7 @@ async function main() {
         await writeFile(path.join(args.out, j.file), bytes);
         manifest.entries[j.name] = { file: j.file, mimeType: 'audio/mpeg', hash: j.hash, kind: j.kind };
         manifest.generatedAt = new Date().toISOString();
-        await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+        await saveManifest();
         console.log(`${(bytes.length / 1024).toFixed(1)} KiB`);
       } catch (err) {
         console.log('FAILED');
@@ -149,6 +156,7 @@ async function main() {
     }
   };
   await Promise.all(Array.from({ length: Math.min(args.concurrency, todo.length) }, worker));
+  await manifestWrite;
 
   if (failures.length) {
     console.error(`[bake] ${failures.length} failure(s):`);

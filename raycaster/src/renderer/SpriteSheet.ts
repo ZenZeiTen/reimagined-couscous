@@ -248,11 +248,17 @@ export class SpriteSheet {
     return wrapIndex(Math.round(rel / this.dirStep), this.directions);
   }
 
-  /** Index into the rect arrays for the given animation frame and direction. */
+  /**
+   * Index into the rect arrays for the given animation frame and direction.
+   * A sheet that lacks the animation (e.g. a single-pose sheet baked by
+   * `directional_sprite_addon.py`) falls back to the first frame of its first
+   * animation, keeping the requested direction so the sprite still turns.
+   */
   frameIndex(animation: string, frame: number, direction: number): number {
-    const a = this.animations.get(animation);
+    const a = this.animations.get(animation) ?? this.animations.values().next().value;
     if (!a) return 0;
-    return a.lookup[frame * this.directions + direction]!;
+    const f = this.animations.has(animation) ? frame : 0;
+    return a.lookup[f * this.directions + direction]!;
   }
 
   getRect(index: number, out: SpriteFrameRect): SpriteFrameRect {
