@@ -64,6 +64,18 @@ async function translate(
   return { best: best.trim(), candidates };
 }
 
+// Letters and clusters that occur in English but (almost) never in native
+// Indonesian spelling. Their presence overrides the affix heuristic below so
+// English words such as "person", "terrible" or "mention" are not flagged.
+// ("g" is left out of the doubled-consonant check because "meng-" + a
+// g-stem is common: "menggambar", "mengganti".)
+const ENGLISH_MARKERS = [
+  /[qxv]/,
+  /(th|sh|ck|ph|wh|ee|oo|ou)/,
+  /(tion|sion|ly|ed|ous|ness|ment|ble|ive|ify)$/,
+  /([bcdfhjklmnprstwz])\1/,
+];
+
 /** Heuristic: does the input look Indonesian rather than English? */
 export function looksIndonesian(word: string): boolean {
   const w = word.toLowerCase().trim();
@@ -77,6 +89,7 @@ export function looksIndonesian(word: string): boolean {
     "lambat", "baru", "lama", "orang", "anak", "ibu", "bapak", "teman",
   ]);
   if (commonWords.has(w)) return true;
+  if (w.length < 5 || ENGLISH_MARKERS.some((re) => re.test(w))) return false;
   return affixes.some((re) => re.test(w));
 }
 

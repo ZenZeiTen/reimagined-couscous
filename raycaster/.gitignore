@@ -4,3 +4,4 @@ dist/
 .env.local
 public/audio/bank/*.mp3
 public/audio/bank/*.wav
+__pycache__/

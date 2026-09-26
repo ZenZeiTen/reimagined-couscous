@@ -4,13 +4,29 @@ const TRANSLATE_API = "https://api.mymemory.translated.net/get";
 const UPSTREAM_TIMEOUT_MS = 10_000;
 const LANGS = new Set(["en", "id"]);
 
+/** Turn a numeric character reference into a string, dropping invalid code points. */
+function fromCodePointSafe(codePoint: number): string {
+  if (
+    !Number.isInteger(codePoint) ||
+    codePoint < 0 ||
+    codePoint > 0x10ffff ||
+    (codePoint >= 0xd800 && codePoint <= 0xdfff)
+  ) {
+    return "";
+  }
+  return String.fromCodePoint(codePoint);
+}
+
 /** Decode the HTML entities MyMemory sometimes embeds and collapse whitespace. */
 function clean(text: string): string {
   return text
-    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
-    .replace(/&amp;/g, "&")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => fromCodePointSafe(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => fromCodePointSafe(Number(dec)))
     .replace(/&quot;/g, '"')
-    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&")
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^[.,;:!?"'()\[\]]+|[.,;:!?"'()\[\]]+$/g, "");
@@ -29,7 +45,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const url = `${TRANSLATE_API}?q=${encodeURIComponent(q)}&langpair=${from}|${to}`;
+    const url = `${TRANSLATE_API}?q=${encodeURIComponent(q)}&langpair=${encodeURIComponent(`${from}|${to}`)}`;
     const res = await fetch(url, {
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
       next: { revalidate: 86_400 },

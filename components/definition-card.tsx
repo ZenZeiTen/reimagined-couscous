@@ -16,9 +16,12 @@ export default function DefinitionCard({
   onSelectWord: (word: string) => void;
 }) {
   const entry = result.entries[0];
+  // The upstream API sometimes sends `phonetic: ""` or omits `phonetics`,
+  // so fall through on empty strings rather than only on null/undefined.
+  const phonetics = entry.phonetics ?? [];
   const phoneticText =
-    entry.phonetic ?? entry.phonetics.find((p) => p.text)?.text ?? "";
-  const rawAudio = entry.phonetics.find((p) => p.audio)?.audio ?? "";
+    entry.phonetic || phonetics.find((p) => p.text)?.text || "";
+  const rawAudio = phonetics.find((p) => p.audio)?.audio ?? "";
   // Some API entries return protocol-relative URLs like //ssl.gstatic.com/...
   const audioSrc = rawAudio.startsWith("//") ? `https:${rawAudio}` : rawAudio;
 

@@ -2,18 +2,35 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-export function useLocalStorage<T>(key: string, initialValue: T) {
+/**
+ * React state mirrored to localStorage.
+ *
+ * `isValid` guards against corrupted or foreign data under the same key
+ * (e.g. an object where an array is expected); invalid values are ignored
+ * and the initial value is kept.
+ */
+export function useLocalStorage<T>(
+  key: string,
+  initialValue: T,
+  isValid?: (value: unknown) => value is T
+) {
   const [value, setValue] = useState<T>(initialValue);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(key);
-      if (stored !== null) setValue(JSON.parse(stored) as T);
+      if (stored !== null) {
+        const parsed: unknown = JSON.parse(stored);
+        if (!isValid || isValid(parsed)) setValue(parsed as T);
+      }
     } catch {
-      // Ignore corrupted storage.
+      // Ignore corrupted or inaccessible storage.
     }
     setHydrated(true);
+    // `isValid` is expected to be a stable function; re-reading storage
+    // whenever a caller passes a fresh closure would discard state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key]);
 
   const set = useCallback(
