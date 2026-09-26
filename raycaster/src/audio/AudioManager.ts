@@ -177,11 +177,14 @@ export class AudioManager {
     if (existing) return existing;
     const inflight = this.pending.get(name);
     if (inflight) return inflight;
-    const p = this.resolveBuffer(name).then((buf) => {
-      this.buffers.set(name, buf);
-      this.pending.delete(name);
-      return buf;
-    });
+    const p = this.resolveBuffer(name)
+      .then((buf) => {
+        this.buffers.set(name, buf);
+        return buf;
+      })
+      // Drop the in-flight entry on failure too, so a later call can retry
+      // instead of receiving the same rejection for the rest of the session.
+      .finally(() => this.pending.delete(name));
     this.pending.set(name, p);
     return p;
   }

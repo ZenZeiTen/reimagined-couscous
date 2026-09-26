@@ -465,7 +465,10 @@ def bake(cfg: BakeConfig) -> Dict[str, object]:
     for spec in specs:
         apply_action(spec)
         for f in sample_frames(spec):
-            bpy.context.scene.frame_set(int(round(f)), subframe=f - int(round(f)) if f != int(round(f)) else 0.0)
+            # Same whole/fraction split as the render loop below, so the framing
+            # box is measured on exactly the poses that get rendered.
+            whole = int(math.floor(f))
+            bpy.context.scene.frame_set(whole, subframe=f - whole)
             a, b = evaluated_bounds(meshes)
             lo = Vector((min(lo.x, a.x), min(lo.y, a.y), min(lo.z, a.z)))
             hi = Vector((max(hi.x, b.x), max(hi.y, b.y), max(hi.z, b.z)))

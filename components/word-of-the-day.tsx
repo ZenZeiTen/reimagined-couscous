@@ -32,8 +32,8 @@ export default function WordOfTheDay({
   const preview =
     result?.entries[0]?.meanings[0]?.definitions[0]?.definition ?? "";
   const phonetic =
-    result?.entries[0]?.phonetic ??
-    result?.entries[0]?.phonetics.find((p) => p.text)?.text ??
+    result?.entries[0]?.phonetic ||
+    result?.entries[0]?.phonetics?.find((p) => p.text)?.text ||
     "";
 
   return (

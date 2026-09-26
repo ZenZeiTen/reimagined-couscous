@@ -43,6 +43,8 @@ export class Engine {
   private rafId = 0;
   private running = false;
   private paused = false;
+  /** True while a pause was triggered by the tab being hidden, so only that pause is auto-resumed. */
+  private pausedByVisibility = false;
   private fpsWindowStart = 0;
   private fpsWindowFrames = 0;
   private readonly boundFrame: (now: number) => void;
@@ -57,8 +59,14 @@ export class Engine {
     const pauseWhenHidden = options.pauseWhenHidden ?? true;
     this.onVisibility = () => {
       if (!pauseWhenHidden) return;
-      if (document.hidden) this.pause();
-      else this.resume();
+      if (document.hidden) {
+        // Don't take over a pause the game already owns (e.g. its pause menu).
+        if (this.paused) return;
+        this.pause();
+        this.pausedByVisibility = true;
+      } else if (this.pausedByVisibility) {
+        this.resume();
+      }
     };
     if (typeof document !== 'undefined') document.addEventListener('visibilitychange', this.onVisibility);
   }
@@ -93,11 +101,14 @@ export class Engine {
     this.rafId = 0;
   }
 
+  /** Pause the simulation. An explicit pause is never undone by a tab-visibility change. */
   pause(): void {
     this.paused = true;
+    this.pausedByVisibility = false;
   }
 
   resume(): void {
+    this.pausedByVisibility = false;
     if (!this.paused) return;
     this.paused = false;
     this.clock.reset();

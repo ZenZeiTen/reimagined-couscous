@@ -1,0 +1,7 @@
+# CODEOWNERS
+# All changes to the skill file and checksums require owner review.
+# Replace @your-github-username with your actual GitHub handle.
+
+lang-forge/SKILL.md    @your-github-username
+checksums.sha256       @your-github-username
+SECURITY.md            @your-github-username

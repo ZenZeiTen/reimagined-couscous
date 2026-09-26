@@ -93,7 +93,8 @@ back to procedural sheets built through the same metadata schema.
 ## Audio
 
 Sounds resolve through baked bank → browser cache → live ElevenLabs
-generation (only with `VITE_ELEVENLABS_API_KEY`) → procedural synth. See
+generation (development builds only, with `VITE_ELEVENLABS_API_KEY`) →
+procedural synth. See
 `tools/audio/README.md` for baking. Positional effects are mixed with stereo
 panning and distance attenuation relative to the player; voice lines play
 one at a time through a rate-limited queue.

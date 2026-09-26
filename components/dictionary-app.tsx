@@ -33,6 +33,35 @@ type SearchState =
 
 const HISTORY_LIMIT = 10;
 
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null;
+const isDirection = (v: unknown): v is Direction =>
+  v === "en-id" || v === "id-en";
+
+// Stored lists are validated on read so corrupted or stale localStorage
+// data cannot crash rendering (e.g. `.filter` on a non-array).
+function isHistoryList(v: unknown): v is HistoryItem[] {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      (h) =>
+        isRecord(h) && typeof h.word === "string" && isDirection(h.direction)
+    )
+  );
+}
+function isBookmarkList(v: unknown): v is BookmarkItem[] {
+  return (
+    Array.isArray(v) &&
+    v.every(
+      (b) =>
+        isRecord(b) &&
+        typeof b.word === "string" &&
+        typeof b.translation === "string" &&
+        isDirection(b.direction)
+    )
+  );
+}
+
 export default function DictionaryApp() {
   const [query, setQuery] = useState("");
   const [direction, setDirection] = useState<Direction>("en-id");
@@ -40,13 +69,18 @@ export default function DictionaryApp() {
   const [search, setSearch] = useState<SearchState>({ status: "idle" });
   const [history, setHistory] = useLocalStorage<HistoryItem[]>(
     "kamus-history",
-    []
+    [],
+    isHistoryList
   );
   const [bookmarks, setBookmarks] = useLocalStorage<BookmarkItem[]>(
     "kamus-bookmarks",
-    []
+    [],
+    isBookmarkList
   );
   const abortRef = useRef<AbortController | null>(null);
+
+  // Cancel any in-flight lookup when the app unmounts.
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const suggestion: Direction | null = query.trim()
     ? looksIndonesian(query)

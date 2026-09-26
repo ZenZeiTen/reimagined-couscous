@@ -22,7 +22,8 @@ export interface Meaning {
 export interface DictionaryEntry {
   word: string;
   phonetic?: string;
-  phonetics: Phonetic[];
+  /** May be missing or empty for some upstream entries. */
+  phonetics?: Phonetic[];
   meanings: Meaning[];
 }
 

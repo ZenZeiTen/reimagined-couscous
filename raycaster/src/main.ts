@@ -29,8 +29,14 @@ async function boot(): Promise<void> {
   };
   fit();
 
+  // Vite inlines VITE_* variables into the bundle, so a key set here would ship
+  // to every player in a production build. Live generation is a development
+  // convenience only; production builds use the baked bank, cache and synth.
   const apiKey = (import.meta.env['VITE_ELEVENLABS_API_KEY'] as string | undefined) ?? '';
-  const elevenLabs = apiKey ? new ElevenLabsClient({ apiKey }) : null;
+  if (apiKey && !import.meta.env.DEV) {
+    console.warn('[audio] VITE_ELEVENLABS_API_KEY is ignored in production builds; bake a sound bank instead (see tools/audio/README.md).');
+  }
+  const elevenLabs = apiKey && import.meta.env.DEV ? new ElevenLabsClient({ apiKey }) : null;
   const audio = new AudioManager({ spec: validateSoundBankSpec(soundBankSpec), elevenLabs, bankUrl: 'audio/bank/' });
 
   const assets = await loadAssets();
@@ -44,8 +50,15 @@ async function boot(): Promise<void> {
   });
 
   let started = false;
+  const showPaused = (text: string): void => {
+    engine.pause();
+    overlay.classList.remove('hidden');
+    if (overlayText) overlayText.textContent = text;
+  };
+
   overlay.addEventListener('click', async () => {
     overlay.classList.add('hidden');
+    // Requested synchronously so it still counts as part of the click gesture.
     game.input.requestPointerLock();
     try {
       await audio.unlock();
@@ -59,17 +72,26 @@ async function boot(): Promise<void> {
     if (!started) {
       started = true;
       engine.start();
-    } else {
-      engine.resume();
     }
+    // Resuming is driven by `pointerlockchange` below, so the game never runs
+    // unlocked behind a hidden overlay. If the lock was refused (browsers
+    // enforce a cooldown after Esc) or is still pending, stay paused; a
+    // granted lock resumes and hides the overlay.
+    if (document.pointerLockElement !== hud) showPaused('Paused — click to resume');
   });
 
   document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement !== hud && started) {
-      engine.pause();
-      overlay.classList.remove('hidden');
-      if (overlayText) overlayText.textContent = 'Paused — click to resume';
+    if (!started) return;
+    if (document.pointerLockElement === hud) {
+      engine.resume();
+      overlay.classList.add('hidden');
+    } else {
+      showPaused('Paused — click to resume');
     }
+  });
+
+  document.addEventListener('pointerlockerror', () => {
+    if (started) showPaused('Mouse capture failed — click to try again');
   });
 
   const sources = Object.entries(assets.spriteSources)
@@ -85,6 +107,12 @@ boot().catch((err: unknown) => {
   console.error(err);
   const overlay = document.getElementById('overlay');
   if (overlay) {
-    overlay.innerHTML = `<h1>BOOT FAILED</h1><p>${String(err instanceof Error ? err.message : err)}</p>`;
+    // Error text can echo fetched level/sprite data, so never render it as HTML.
+    overlay.replaceChildren();
+    const h1 = document.createElement('h1');
+    h1.textContent = 'BOOT FAILED';
+    const p = document.createElement('p');
+    p.textContent = String(err instanceof Error ? err.message : err);
+    overlay.append(h1, p);
   }
 });
