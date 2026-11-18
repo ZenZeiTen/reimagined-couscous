@@ -1,3 +1,6 @@
+> **This repository has moved.** It now lives in [ZenZeiTen/synthapps](https://github.com/ZenZeiTen/synthapps) at three folders: [`kamus-dwibahasa/`](https://github.com/ZenZeiTen/synthapps/tree/main/kamus-dwibahasa) (the dictionary app), [`raycaster/`](https://github.com/ZenZeiTen/synthapps/tree/main/raycaster) (the game engine) and [`lang-forge/`](https://github.com/ZenZeiTen/synthapps/tree/main/lang-forge) (the language-design skill), with its full history.
+> This copy is archived: it stays here for its issues, pull requests and releases, and it is no longer updated. Please open new issues and pull requests in synthapps.
+
 # reimagined-couscous
 
 Three independent pieces live in this repository:
